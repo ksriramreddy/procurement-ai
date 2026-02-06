@@ -1,16 +1,20 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, CheckCircle, Edit3, FileText } from 'lucide-react'
+import { Send, CheckCircle, Edit3, FileText, X } from 'lucide-react'
 import Button from '../ui/Button'
 import { useChatStore } from '../../store/chatStore'
+import { callPricingSuggestionAgent } from '../../services/api'
 
 export default function RFQPreview({ rfqDocument }) {
-  const { currentChatId, addMessage, showDetailPanel } = useChatStore()
+  const { currentChat, currentChatId, addMessage, showDetailPanel } = useChatStore()
   const [content, setContent] = useState(rfqDocument || '')
   const [isEditing, setIsEditing] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [isSending, setIsSending] = useState(false)
 
-  const handleSend = () => {
+  const handleSend = async () => {
+    setIsSending(true)
+
     // Show success popup
     setShowSuccess(true)
 
@@ -23,6 +27,31 @@ export default function RFQPreview({ rfqDocument }) {
       actionType: 'rfq-sent',
       actionComplete: true
     })
+
+    // Call pricing suggestion agent
+    try {
+      const rfqData = currentChat?.rfqData
+      const pricingResponse = await callPricingSuggestionAgent(rfqData)
+      
+      // Add pricing suggestion message
+      addMessage(currentChatId, {
+        id: `pricing-suggestion-${Date.now()}`,
+        role: 'assistant',
+        content: `Based on your procurement requirements, here's the AI-suggested pricing:`,
+        timestamp: new Date().toISOString(),
+        actionType: 'pricing-suggestion',
+        pricingData: {
+          price: pricingResponse?.price,
+          currency: pricingResponse?.currency || 'USD'
+        },
+        actionComplete: false
+      })
+    } catch (error) {
+      console.error('Failed to get pricing suggestion:', error)
+      // Don't fail the send if pricing fails
+    } finally {
+      setIsSending(false)
+    }
 
     // Auto-hide success after 3 seconds
     setTimeout(() => {
@@ -45,8 +74,14 @@ export default function RFQPreview({ rfqDocument }) {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
-              className="bg-white rounded-2xl p-6 shadow-xl max-w-sm w-full text-center"
+              className="bg-white rounded-2xl p-6 shadow-xl max-w-sm w-full text-center relative"
             >
+              <button
+                onClick={() => setShowSuccess(false)}
+                className="absolute top-4 right-4 p-1 rounded-lg hover:bg-lyzr-light-2 transition-colors"
+              >
+                <X className="w-5 h-5 text-lyzr-mid-4" />
+              </button>
               <div className="w-16 h-16 bg-accent-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-8 h-8 text-accent-success" />
               </div>
@@ -108,10 +143,10 @@ export default function RFQPreview({ rfqDocument }) {
           variant="primary"
           className="w-full"
           onClick={handleSend}
-          disabled={showSuccess}
+          disabled={showSuccess || isSending}
         >
           <Send className="w-4 h-4" />
-          Send RFQ
+          {isSending ? 'Sending...' : 'Send RFQ'}
         </Button>
       </div>
     </div>

@@ -140,12 +140,25 @@ export function parseInternalVendorResponse(data) {
 /**
  * Parse external vendor fetcher response
  * Example: {"vendors": [{"vendor_name": "Dell", ...}]}
+ * Also handles nested structure like: {"data": {"vendors": [...]}}
+ * Or from field: {"from": "external_vendor_fetcher", "vendors": [...]}
  */
 export function parseExternalVendorResponse(data) {
+  // Check for vendors at different possible locations
+  let vendorsArray = null
+  
   if (data?.vendors && Array.isArray(data.vendors)) {
-    console.log('🔍 parseExternalVendorResponse: Found vendors array with', data.vendors.length, 'vendors')
-    const transformedVendors = data.vendors.map(v => ({
-      name: v.vendor_name,
+    vendorsArray = data.vendors
+  } else if (data?.data?.vendors && Array.isArray(data.data.vendors)) {
+    vendorsArray = data.data.vendors
+  } else if (data?.from === 'external_vendor_fetcher' && data?.vendors) {
+    vendorsArray = data.vendors
+  }
+  
+  if (vendorsArray && vendorsArray.length > 0) {
+    console.log('🔍 parseExternalVendorResponse: Found vendors array with', vendorsArray.length, 'vendors')
+    const transformedVendors = vendorsArray.map(v => ({
+      name: v.vendor_name || v.name,
       website: v.website,
       description: v.description,
       services: v.services || [],
@@ -187,6 +200,21 @@ export function parseRfqResponse(data) {
 }
 
 /**
+ * Parse pricing suggestion response
+ * Example: {"from": "ai_price_suggestion", "price": 8000}
+ */
+export function parsePricingSuggestionResponse(data) {
+  if (data?.from === 'ai_price_suggestion' && data?.price != null) {
+    return {
+      type: 'pricing_suggestion',
+      price: data.price,
+      currency: data.currency || 'USD'
+    }
+  }
+  return null
+}
+
+/**
  * Parse manager agent final response
  */
 export function parseManagerResponse(data) {
@@ -208,6 +236,7 @@ export function parseAgentOutput(data) {
 
   // Try each parser in order of specificity
   const parsers = [
+    parsePricingSuggestionResponse,
     parseManagerResponse,
     parseGeneralChatResponse,
     parseDecisionMakerResponse,

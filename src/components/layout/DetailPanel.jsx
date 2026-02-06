@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Download, ArrowLeft, CheckCircle } from 'lucide-react'
 import { useChatStore } from '../../store/chatStore'
+import { callPricingSuggestionAgent } from '../../services/api'
 import Button from '../ui/Button'
 import VendorTable from '../vendors/VendorTable'
 import VendorDetails from '../vendors/VendorDetails'
@@ -22,6 +23,7 @@ export default function DetailPanel() {
   } = useChatStore()
 
   const [showRfqSuccess, setShowRfqSuccess] = useState(false)
+  const [isLoadingPricing, setIsLoadingPricing] = useState(false)
 
   const handleClose = () => {
     hideDetailPanel()
@@ -36,31 +38,61 @@ export default function DetailPanel() {
   }
 
   // Handle "Send RFQ" from vendor table
-  const handleSendRfqFromVendor = (vendor) => {
+  const handleSendRfqFromVendor = async (selectedVendors) => {
+    // Handle both single vendor and array of vendors
+    const vendors = Array.isArray(selectedVendors) ? selectedVendors : [selectedVendors]
+    
     const rfqData = currentChat?.rfqData
     const hasRfqDetails = rfqData && (
       rfqData.organizationName || rfqData.requirementSummary || rfqData.procurementType
     )
 
     if (hasRfqDetails && currentChat?.rfqDocument) {
-      // RFQ details are filled AND document is generated - show success
+      // RFQ details are filled AND document is generated
       setShowRfqSuccess(true)
+      setIsLoadingPricing(true)
 
+      // Add vendor submission message
+      const vendorNames = vendors.map(v => v.name).join(', ')
       addMessage(currentChatId, {
         id: `rfq-vendor-sent-${Date.now()}`,
         role: 'assistant',
-        content: `RFQ has been submitted to ${vendor.name} successfully.`,
+        content: `RFQ has been submitted to ${vendorNames} successfully.`,
         timestamp: new Date().toISOString(),
         actionType: 'rfq-sent',
         actionComplete: true
       })
 
-      setTimeout(() => setShowRfqSuccess(false), 3000)
+      // Call pricing suggestion agent
+      try {
+        const pricingResponse = await callPricingSuggestionAgent(rfqData)
+        
+        // Add pricing suggestion message with special handler
+        addMessage(currentChatId, {
+          id: `pricing-suggestion-${Date.now()}`,
+          role: 'assistant',
+          content: `Based on your procurement requirements, here's the AI-suggested pricing:`,
+          timestamp: new Date().toISOString(),
+          actionType: 'pricing-suggestion',
+          pricingData: {
+            price: pricingResponse?.price,
+            currency: pricingResponse?.currency || 'USD'
+          },
+          actionComplete: false
+        })
+      } catch (error) {
+        console.error('Failed to get pricing suggestion:', error)
+        // Don't fail the RFQ submission if pricing fails
+      } finally {
+        setIsLoadingPricing(false)
+        setTimeout(() => setShowRfqSuccess(false), 3000)
+      }
     } else {
       // No RFQ details - auto-fill chat with RFQ request
       hideDetailPanel()
+      const vendorNames = vendors.map(v => v.name).join(', ')
       setPendingChatMessage(
-        `I want to create an RFQ for ${vendor.name}`
+        `I want to create an RFQ for ${vendorNames}`
       )
     }
   }

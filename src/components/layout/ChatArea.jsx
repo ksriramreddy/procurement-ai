@@ -32,6 +32,42 @@ export default function ChatArea() {
 
   const [sessionId, setSessionId] = useState(null)
   const messagesEndRef = useRef(null)
+  const requestCountersRef = useRef({ DATABASE_QUERY: 0, RFQ_REQUEST: 0, GENERAL_CHAT: 0 })
+
+  // Loading message variations based on request type
+  const getLoadingMessage = (conversationType) => {
+    const count = requestCountersRef.current[conversationType] || 0
+    
+    if (conversationType === 'DATABASE_QUERY') {
+      const messages = [
+        'Please wait, I am searching the database for you...',
+        'Searching vendor database, just a moment...',
+        'Let me find the best vendors for you...',
+        'Querying database for matching vendors...',
+        'Searching for available vendors...'
+      ]
+      return messages[count % messages.length]
+    } else if (conversationType === 'RFQ_REQUEST') {
+      const messages = [
+        'I will help you fill the form...',
+        'Let me help you complete the RFQ form...',
+        'I\'m expecting your details from the provided context...',
+        'Preparing RFQ form for you...',
+        'Let me gather the necessary information for your RFQ...'
+      ]
+      return messages[count % messages.length]
+    } else if (conversationType === 'GENERAL_CHAT') {
+      const messages = [
+        'Processing your request...',
+        'Let me think about that...',
+        'Analyzing your query...',
+        'Getting you the answer...',
+        'Working on your request...'
+      ]
+      return messages[count % messages.length]
+    }
+    return 'Processing your request...'
+  }
 
   // Initialize WebSocket when a new session starts
   useEffect(() => {
@@ -114,13 +150,19 @@ export default function ChatArea() {
         console.log('   Conversation Type:', conversationType)
         updateChat(currentChatId, { conversationType })
 
-        // Add action card message and show detail panel based on decision
+        // Increment counter for this request type
+        requestCountersRef.current[conversationType] = (requestCountersRef.current[conversationType] || 0) + 1
+
+        // Get loading message based on type and occurrence
+        const loadingMessage = getLoadingMessage(conversationType)
+
+        // Add loading message and show detail panel based on decision
         if (conversationType === 'DATABASE_QUERY') {
-          console.log('   → Adding Vendor Search action card')
+          console.log('   → Adding Vendor Search loading message')
           addMessage(currentChatId, {
             id: `action-${Date.now()}`,
             role: 'assistant',
-            content: 'I\'m searching for vendors based on your request. Click below to view the results.',
+            content: loadingMessage,
             timestamp: new Date().toISOString(),
             actionType: 'vendors',
             actionComplete: false
@@ -130,11 +172,11 @@ export default function ChatArea() {
             showDetailPanel('vendors')
           }
         } else if (conversationType === 'RFQ_REQUEST') {
-          console.log('   → Adding RFQ Creation action card')
+          console.log('   → Adding RFQ Creation loading message')
           addMessage(currentChatId, {
             id: `action-${Date.now()}`,
             role: 'assistant',
-            content: 'I\'m preparing the RFQ form for you. Click below to view and complete the form.',
+            content: loadingMessage,
             timestamp: new Date().toISOString(),
             actionType: 'rfq',
             actionComplete: false
@@ -143,6 +185,15 @@ export default function ChatArea() {
           if (!isDetailPanelOpen || detailPanelType !== 'rfq') {
             showDetailPanel('rfq')
           }
+        } else if (conversationType === 'GENERAL_CHAT') {
+          console.log('   → Adding General Chat loading message')
+          addMessage(currentChatId, {
+            id: `action-${Date.now()}`,
+            role: 'assistant',
+            content: loadingMessage,
+            timestamp: new Date().toISOString(),
+            actionComplete: false
+          })
         }
         break
 

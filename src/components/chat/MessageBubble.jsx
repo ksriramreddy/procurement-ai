@@ -2,16 +2,65 @@ import { motion } from 'framer-motion'
 import { User, Bot, AlertCircle } from 'lucide-react'
 import Badge from '../ui/Badge'
 import ActionCard from './ActionCard'
+import PricingSuggestionCard from './PricingSuggestionCard'
+import { useChatStore } from '../../store/chatStore'
 
 export default function MessageBubble({ message, onActionClick }) {
   const isUser = message.role === 'user'
   const isError = message.error
+  const { currentChatId, currentChat, updateMessage, setRfqData, showDetailPanel } = useChatStore()
 
   // Handle action card click
   const handleActionClick = () => {
     if (message.actionType && onActionClick) {
       onActionClick(message.actionType)
     }
+  }
+
+  // Handle pricing approval - Set price as RFQ budget and open RFQ form
+  const handlePricingApprove = () => {
+    // Update the message to show it's been approved
+    updateMessage(currentChatId, message.id, {
+      actionComplete: true,
+      pricingApproved: true
+    })
+
+    // Get the suggested price and set it as RFQ budget
+    const suggestedPrice = message.pricingData?.price
+    if (suggestedPrice && currentChat?.rfqData) {
+      // Update RFQ data with the suggested price as budget
+      const updatedRfqData = {
+        ...currentChat.rfqData,
+        budget_range: `$${suggestedPrice.toLocaleString()}`
+      }
+      setRfqData(currentChatId, updatedRfqData)
+    } else if (suggestedPrice) {
+      // If no existing RFQ data, create new one with the price
+      const newRfqData = {
+        rfqId: '',
+        organizationName: currentChat?.organizationName || '',
+        contactPerson: { name: '', email: '' },
+        procurementType: '',
+        requirementSummary: '',
+        quantity: '',
+        deliveryTimeline: '',
+        budget_range: `$${suggestedPrice.toLocaleString()}`,
+        responseDeadline: ''
+      }
+      setRfqData(currentChatId, newRfqData)
+    }
+
+    // Open RFQ form for user to fill
+    showDetailPanel('rfq')
+  }
+
+  // Handle pricing rejection
+  const handlePricingReject = () => {
+    // Update the message to show it's been rejected
+    updateMessage(currentChatId, message.id, {
+      actionComplete: true,
+      pricingApproved: false
+    })
   }
 
   return (
@@ -62,8 +111,20 @@ export default function MessageBubble({ message, onActionClick }) {
               {message.content}
             </p>
 
+            {/* Pricing Suggestion Card */}
+            {message.actionType === 'pricing-suggestion' && message.pricingData && !isUser && (
+              <div className="mt-4">
+                <PricingSuggestionCard
+                  price={message.pricingData.price}
+                  currency={message.pricingData.currency}
+                  onApprove={handlePricingApprove}
+                  onReject={handlePricingReject}
+                />
+              </div>
+            )}
+
             {/* Action Card - for RFQ or Vendor Search triggers */}
-            {message.actionType && !isUser && (
+            {message.actionType && message.actionType !== 'pricing-suggestion' && !isUser && (
               <ActionCard
                 actionType={message.actionType}
                 onClick={handleActionClick}

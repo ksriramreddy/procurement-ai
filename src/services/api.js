@@ -187,3 +187,62 @@ export async function generateRfqDocument(rfqFormData) {
   const parsed = extractFinalJSON(data)
   return parsed
 }
+
+/**
+ * Call pricing suggestion agent to get AI-suggested pricing for procurement
+ * @param {object} procurementDetails - The procurement details (quantity, type, etc.)
+ * @returns {Promise<object>} - { from: 'ai_price_suggestion', price: <number> }
+ */
+export async function callPricingSuggestionAgent(procurementDetails) {
+  const config = getConfig()
+  const PRICING_AGENT_ID = '6985810b0ee88347863f06fa'
+  const sessionId = `${PRICING_AGENT_ID}-pricing-${Date.now()}`
+
+  const messagePayload = {
+    intent: 'pricing_suggestion',
+    procurement_details: {
+      quantity: procurementDetails.quantity || '',
+      item: procurementDetails.procurementType || procurementDetails.item || '',
+      requirement_summary: procurementDetails.requirement_summary || '',
+      contract_duration: procurementDetails.deliveryTimeline || '',
+      budget_range: procurementDetails.budget_range || ''
+    }
+  }
+
+  const requestBody = {
+    user_id: config.userId,
+    agent_id: PRICING_AGENT_ID,
+    session_id: sessionId,
+    message: JSON.stringify(messagePayload)
+  }
+
+  console.log('💰 Calling pricing suggestion agent...')
+  console.log('Agent ID:', PRICING_AGENT_ID)
+  console.log('Payload:', JSON.stringify(messagePayload, null, 2))
+
+  try {
+    const response = await fetch(CHAT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': config.apiKey
+      },
+      body: JSON.stringify(requestBody)
+    })
+
+    if (!response.ok) {
+      throw new Error(`Pricing agent API failed: ${response.status}`)
+    }
+
+    const data = await response.json()
+    console.log('💰 Pricing agent response received')
+
+    // Parse the response
+    const parsed = extractFinalJSON(data)
+    console.log('💰 Parsed pricing response:', parsed)
+    return parsed
+  } catch (error) {
+    console.error('❌ Failed to get pricing suggestion:', error)
+    throw error
+  }
+}
