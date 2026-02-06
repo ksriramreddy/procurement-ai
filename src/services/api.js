@@ -1,0 +1,189 @@
+const CHAT_URL = 'https://agent-prod.studio.lyzr.ai/v3/inference/chat/'
+
+/**
+ * Get environment variables
+ */
+function getConfig() {
+  return {
+    apiKey: import.meta.env.VITE_LYZR_API_KEY || 'sk-default-IjvgrZDhiW1wm1ydxpuKPEJrmcqxsx35',
+    userId: import.meta.env.VITE_LYZR_USER_ID || 'sriram@lyzr.ai',
+    agentId: import.meta.env.VITE_LYZR_AGENT_ID || '698468a43107974e70311aaf'
+  }
+}
+
+/**
+ * Send message to LYZR Chat API
+ * @param {string} message - User message
+ * @param {string} sessionId - Session ID for the chat
+ * @returns {Promise<object>} - API response
+ */
+export async function sendMessage(message, sessionId) {
+  const config = getConfig()
+
+  const messagePayload = {
+    action: 'execute',
+    request_id: sessionId,
+    message: message
+  }
+
+  const requestBody = {
+    user_id: config.userId,
+    agent_id: config.agentId,
+    session_id: sessionId,
+    message: JSON.stringify(messagePayload)
+  }
+
+  console.log('\n')
+  console.log('┌──────────────────────────────────────────────────────────────┐')
+  console.log('│                  LYZR API REQUEST                             │')
+  console.log('├──────────────────────────────────────────────────────────────┤')
+  console.log('│ URL:', CHAT_URL)
+  console.log('│ User ID:', config.userId)
+  console.log('│ Agent ID:', config.agentId)
+  console.log('│ Session ID:', sessionId)
+  console.log('├──────────────────────────────────────────────────────────────┤')
+  console.log('│ REQUEST BODY:')
+  console.log('└──────────────────────────────────────────────────────────────┘')
+  console.log(JSON.stringify(requestBody, null, 2))
+  console.log('\n')
+
+  try {
+    const response = await fetch(CHAT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': config.apiKey
+      },
+      body: JSON.stringify(requestBody)
+    })
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`)
+    }
+
+    const data = await response.json()
+
+    console.log('\n')
+    console.log('┌──────────────────────────────────────────────────────────────┐')
+    console.log('│                  RAW LYZR API RESPONSE                        │')
+    console.log('├──────────────────────────────────────────────────────────────┤')
+    console.log('│ Status: SUCCESS')
+    console.log('└──────────────────────────────────────────────────────────────┘')
+    console.log(JSON.stringify(data, null, 2))
+    console.log('\n')
+
+    const extracted = extractFinalJSON(data)
+
+    console.log('┌──────────────────────────────────────────────────────────────┐')
+    console.log('│                  EXTRACTED/PARSED RESPONSE                    │')
+    console.log('└──────────────────────────────────────────────────────────────┘')
+    console.log(JSON.stringify(extracted, null, 2))
+    console.log('\n')
+
+    return extracted
+  } catch (error) {
+    console.error('❌ Failed to send message:', error)
+    throw error
+  }
+}
+
+/**
+ * Extract final business JSON from LYZR response
+ */
+function extractFinalJSON(apiResponse) {
+  if (!apiResponse || typeof apiResponse.response !== 'string') {
+    return apiResponse
+  }
+
+  let responseStr = apiResponse.response
+
+  // Remove outer quotes if present
+  if (responseStr.startsWith('"')) {
+    try {
+      responseStr = JSON.parse(responseStr)
+    } catch {
+      // Keep as is if parsing fails
+    }
+  }
+
+  // Try to parse as JSON
+  try {
+    return JSON.parse(responseStr)
+  } catch {
+    // Return original response if not JSON
+    return { response: responseStr }
+  }
+}
+
+/**
+ * Generate session ID for LYZR
+ */
+export function generateLyzrSessionId() {
+  const config = getConfig()
+  return `${config.agentId}-CHAT-${Date.now()}`
+}
+
+/**
+ * Get API configuration
+ */
+export function getApiConfig() {
+  return getConfig()
+}
+
+/**
+ * Generate RFQ document by calling the RFQ generator agent
+ * @param {object} rfqFormData - The RFQ form data
+ * @returns {Promise<object>} - { from, content } where content is the full RFQ document
+ */
+export async function generateRfqDocument(rfqFormData) {
+  const config = getConfig()
+  const RFQ_AGENT_ID = '698311d86738a8c0ed88d471'
+  const sessionId = `${RFQ_AGENT_ID}-${Date.now()}`
+
+  const messagePayload = {
+    from: 'rfq_input_generator',
+    rfq_id: rfqFormData.rfq_id || '',
+    organization_name: rfqFormData.organization_name || '',
+    contact_person: {
+      name: rfqFormData.contact_name || '',
+      email: rfqFormData.contact_email || ''
+    },
+    procurement_type: rfqFormData.procurement_type || '',
+    requirement_summary: rfqFormData.requirement_summary || '',
+    quantity: rfqFormData.quantity || '',
+    delivery_timeline: rfqFormData.delivery_timeline || '',
+    budget_range: rfqFormData.budget_range || '',
+    response_deadline: rfqFormData.response_deadline || ''
+  }
+
+  const requestBody = {
+    user_id: config.userId,
+    agent_id: RFQ_AGENT_ID,
+    session_id: sessionId,
+    message: JSON.stringify(messagePayload)
+  }
+
+  console.log('📝 Generating RFQ document...')
+  console.log('Agent ID:', RFQ_AGENT_ID)
+  console.log('Payload:', JSON.stringify(messagePayload, null, 2))
+
+  const response = await fetch(CHAT_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': config.apiKey
+    },
+    body: JSON.stringify(requestBody)
+  })
+
+  if (!response.ok) {
+    throw new Error(`RFQ generator API failed: ${response.status}`)
+  }
+
+  const data = await response.json()
+  console.log('📝 RFQ generator raw response received')
+
+  // Parse the response - it's a JSON string with { from, content }
+  const parsed = extractFinalJSON(data)
+  return parsed
+}

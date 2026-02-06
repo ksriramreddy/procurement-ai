@@ -1,0 +1,86 @@
+# ===============================
+# Environment variables
+# ===============================
+.env
+.env.*
+!.env.example
+
+# ===============================
+# Node modules
+# ===============================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===============================
+# Build / dist outputs
+# ===============================
+dist/
+build/
+out/
+coverage/
+
+# ===============================
+# Runtime data / temp files
+# ===============================
+*.log
+logs/
+tmp/
+temp/
+.cache/
+
+# ===============================
+# Artifacts / generated files
+# ===============================
+artifacts/
+*.artifact.json
+*.artifact.txt
+*.artifact.pdf
+*.artifact.docx
+agent_output.json
+artifact_*.json
+RFQ_*.json
+RFQ_*.txt
+
+# ===============================
+# IDE / Editor settings
+# ===============================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# ===============================
+# OS-specific files
+# ===============================
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ===============================
+# Node / ES module caches
+# ===============================
+.eslintcache
+.npm
+.pnpm-store
+.yarn/
+
+# ===============================
+# Test & debug
+# ===============================
+*.test.log
+*.spec.log
+
+# ===============================
+# Optional: lockfiles (keep only one if needed)
+# ===============================
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
