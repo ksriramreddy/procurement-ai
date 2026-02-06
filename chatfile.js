@@ -162,36 +162,78 @@
 
 // main();
 
+// const API_KEY = "sk-default-IjvgrZDhiW1wm1ydxpuKPEJrmcqxsx35";
+// const CHAT_URL = "https://agent-prod.studio.lyzr.ai/v3/inference/chat/";
+
+// async function callPricingSuggestionAgent() {
+//   const payload = {
+//     user_id: "sriram@lyzr.ai",
+//     agent_id: "6985810b0ee88347863f06fa",
+//     session_id: "6985810b0ee88347863f06fa-demo-session",
+//     message: JSON.stringify({
+//       intent: "pricing_suggestion",
+//       procurement_details: {
+//         item: "laptops",
+//         quantity: 5,
+//         usage: "software development",
+//         specifications: {
+//           ram: "32 GB or higher",
+//           storage: "512 GB SSD or higher"
+//         },
+//         contract_duration: "5 years"
+//       }
+//     })
+//   };
+
+//   const response = await fetch(CHAT_URL, {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//       "x-api-key": API_KEY
+//     },
+//     body: JSON.stringify(payload)
+//   });
+
+//   const data = await response.json();
+//   console.log("Agent Response:");
+//   console.log(JSON.stringify(data, null, 2));
+// }
+
+// callPricingSuggestionAgent().catch(console.error);
+
+
 const API_KEY = "sk-default-IjvgrZDhiW1wm1ydxpuKPEJrmcqxsx35";
 const CHAT_URL = "https://agent-prod.studio.lyzr.ai/v3/inference/chat/";
 
-async function callPricingSuggestionAgent() {
-  const payload = {
-    user_id: "sriram@lyzr.ai",
-    agent_id: "6985810b0ee88347863f06fa",
-    session_id: "6985810b0ee88347863f06fa-demo-session",
-    message: JSON.stringify({
-      intent: "pricing_suggestion",
-      procurement_details: {
-        item: "laptops",
-        quantity: 5,
-        usage: "software development",
-        specifications: {
-          ram: "32 GB or higher",
-          storage: "512 GB SSD or higher"
-        },
-        contract_duration: "5 years"
-      }
-    })
-  };
-
+async function callAgent() {
   const response = await fetch(CHAT_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "x-api-key": API_KEY
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({
+      user_id: "sriram@lyzr.ai",
+      agent_id: "69859edfe17e33c11eed1af8",
+      session_id: "69859edfe17e33c11eed1af8-mjw11vvhy",
+      message: JSON.stringify({
+        vendor_name: "Paladion (now Atos Paladion)",
+        headquarters: "Bengaluru, India",
+        website: "https://www.paladion.net/",
+        description:
+          "Managed detection and response (MDR), security operations (SOC), threat hunting and managed security services focused on enterprise customers.",
+        services: [
+          "Managed Detection and Response (MDR)",
+          "Managed SOC / SOC-as-a-Service",
+          "Threat Hunting",
+          "Vulnerability Management",
+          "Incident Response",
+          "Cloud Security Monitoring"
+        ],
+        compliance_score: 85,
+        compliance_rating: "A"
+      })
+    })
   });
 
   const data = await response.json();
@@ -199,4 +241,4 @@ async function callPricingSuggestionAgent() {
   console.log(JSON.stringify(data, null, 2));
 }
 
-callPricingSuggestionAgent().catch(console.error);
+callAgent().catch(console.error);

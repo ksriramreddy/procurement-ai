@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   Building2,
@@ -13,13 +14,22 @@ import {
   Star,
   DollarSign,
   CheckCircle,
-  ExternalLink
+  ExternalLink,
+  Sparkles,
+  AlertCircle
 } from 'lucide-react'
 import Badge from '../ui/Badge'
 import Card, { CardTitle, CardContent } from '../ui/Card'
 import Button from '../ui/Button'
+import VendorAnalysisCard from './VendorAnalysisCard'
+import { callVendorAnalysisAgent } from '../../services/api'
 
 export default function VendorDetails({ vendor }) {
+  const [showAnalysis, setShowAnalysis] = useState(false)
+  const [analysis, setAnalysis] = useState(null)
+  const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false)
+  const [analysisError, setAnalysisError] = useState(null)
+
   if (!vendor) {
     return (
       <div className="flex items-center justify-center h-full text-lyzr-mid-4">
@@ -30,8 +40,40 @@ export default function VendorDetails({ vendor }) {
 
   const isExternal = vendor.source === 'external'
 
+  const handleGetAnalysis = async () => {
+    if (analysis) {
+      // Toggle if analysis already exists
+      setShowAnalysis(!showAnalysis)
+      return
+    }
+
+    setIsLoadingAnalysis(true)
+    setAnalysisError(null)
+    try {
+      const result = await callVendorAnalysisAgent(vendor)
+      
+      // Extract the analysis from the response
+      let analysisData = result
+      if (typeof result === 'string') {
+        try {
+          analysisData = JSON.parse(result)
+        } catch {
+          analysisData = result
+        }
+      }
+      
+      setAnalysis(analysisData)
+      setShowAnalysis(true)
+    } catch (error) {
+      console.error('Error getting vendor analysis:', error)
+      setAnalysisError('Failed to load vendor analysis. Please try again.')
+    } finally {
+      setIsLoadingAnalysis(false)
+    }
+  }
+
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 space-y-4 overflow-y-auto max-h-full">
       {/* Header Card */}
       <Card className="bg-gradient-to-br from-lyzr-ferra to-lyzr-congo text-white">
         <div className="flex items-start justify-between">
@@ -67,90 +109,119 @@ export default function VendorDetails({ vendor }) {
         </div>
       </Card>
 
-      {/* Quick Stats */}
-      {!isExternal && (
-        <div className="grid grid-cols-3 gap-3">
-          <Card padding="sm" className="text-center">
-            <div className="text-2xl font-semibold text-lyzr-ferra">
-              {vendor.satisfactionScore || '-'}
+      {/* AI Analysis Section for External Vendors */}
+      {isExternal && showAnalysis ? (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className="overflow-hidden"
+        >
+          {analysisError ? (
+            <Card className="border-2 border-accent-error/30 bg-accent-error/5">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-accent-error flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-accent-error">Analysis Error</p>
+                  <p className="text-xs text-lyzr-dark-2">{analysisError}</p>
+                </div>
+              </div>
+            </Card>
+          ) : (
+            <VendorAnalysisCard analysis={analysis} isLoading={isLoadingAnalysis} />
+          )}
+        </motion.div>
+      ) : null}
+
+      {/* Regular Vendor Details */}
+      {!showAnalysis && (
+        <>
+          {/* Quick Stats */}
+          {!isExternal && (
+            <div className="grid grid-cols-3 gap-3">
+              <Card padding="sm" className="text-center">
+                <div className="text-2xl font-semibold text-lyzr-ferra">
+                  {vendor.satisfactionScore || '-'}
+                </div>
+                <div className="text-xs text-lyzr-mid-4">Satisfaction</div>
+              </Card>
+              <Card padding="sm" className="text-center">
+                <div className="text-2xl font-semibold text-accent-success">
+                  {vendor.complianceScore || '-'}%
+                </div>
+                <div className="text-xs text-lyzr-mid-4">Compliance</div>
+              </Card>
+              <Card padding="sm" className="text-center">
+                <div className="text-2xl font-semibold text-accent-cool">
+                  {vendor.riskScore || '-'}
+                </div>
+                <div className="text-xs text-lyzr-mid-4">Risk Score</div>
+              </Card>
             </div>
-            <div className="text-xs text-lyzr-mid-4">Satisfaction</div>
+          )}
+
+          {/* Contact Information */}
+          <Card>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Building2 className="w-4 h-4" />
+              Contact Information
+            </CardTitle>
+            <CardContent className="mt-3 space-y-3">
+              {vendor.contact?.name && (
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-lyzr-light-2 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium text-lyzr-ferra">
+                      {vendor.contact.name.charAt(0)}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-lyzr-congo">{vendor.contact.name}</p>
+                    <p className="text-xs text-lyzr-mid-4">Primary Contact</p>
+                  </div>
+                </div>
+              )}
+              {vendor.contact?.email && (
+                <div className="flex items-center gap-2 text-sm text-lyzr-dark-2">
+                  <Mail className="w-4 h-4 text-lyzr-mid-4" />
+                  <a href={`mailto:${vendor.contact.email}`} className="hover:text-accent-cool">
+                    {vendor.contact.email}
+                  </a>
+                </div>
+              )}
+              {vendor.contact?.phone && (
+                <div className="flex items-center gap-2 text-sm text-lyzr-dark-2">
+                  <Phone className="w-4 h-4 text-lyzr-mid-4" />
+                  {vendor.contact.phone}
+                </div>
+              )}
+              {vendor.address && (
+                <div className="flex items-center gap-2 text-sm text-lyzr-dark-2">
+                  <MapPin className="w-4 h-4 text-lyzr-mid-4" />
+                  {vendor.address}
+                </div>
+              )}
+            </CardContent>
           </Card>
-          <Card padding="sm" className="text-center">
-            <div className="text-2xl font-semibold text-accent-success">
-              {vendor.complianceScore || '-'}%
-            </div>
-            <div className="text-xs text-lyzr-mid-4">Compliance</div>
+
+          {/* Services */}
+          <Card>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <TrendingUp className="w-4 h-4" />
+              Services Offered
+            </CardTitle>
+            <CardContent className="mt-3">
+              <div className="flex flex-wrap gap-2">
+                {(vendor.allServices || vendor.categories || []).map((service, i) => (
+                  <Badge key={i} variant="outline">{service}</Badge>
+                ))}
+              </div>
+            </CardContent>
           </Card>
-          <Card padding="sm" className="text-center">
-            <div className="text-2xl font-semibold text-accent-cool">
-              {vendor.riskScore || '-'}
-            </div>
-            <div className="text-xs text-lyzr-mid-4">Risk Score</div>
-          </Card>
-        </div>
+        </>
       )}
 
-      {/* Contact Information */}
-      <Card>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Building2 className="w-4 h-4" />
-          Contact Information
-        </CardTitle>
-        <CardContent className="mt-3 space-y-3">
-          {vendor.contact?.name && (
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-lyzr-light-2 rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium text-lyzr-ferra">
-                  {vendor.contact.name.charAt(0)}
-                </span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-lyzr-congo">{vendor.contact.name}</p>
-                <p className="text-xs text-lyzr-mid-4">Primary Contact</p>
-              </div>
-            </div>
-          )}
-          {vendor.contact?.email && (
-            <div className="flex items-center gap-2 text-sm text-lyzr-dark-2">
-              <Mail className="w-4 h-4 text-lyzr-mid-4" />
-              <a href={`mailto:${vendor.contact.email}`} className="hover:text-accent-cool">
-                {vendor.contact.email}
-              </a>
-            </div>
-          )}
-          {vendor.contact?.phone && (
-            <div className="flex items-center gap-2 text-sm text-lyzr-dark-2">
-              <Phone className="w-4 h-4 text-lyzr-mid-4" />
-              {vendor.contact.phone}
-            </div>
-          )}
-          {vendor.address && (
-            <div className="flex items-center gap-2 text-sm text-lyzr-dark-2">
-              <MapPin className="w-4 h-4 text-lyzr-mid-4" />
-              {vendor.address}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Services */}
-      <Card>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <TrendingUp className="w-4 h-4" />
-          Services Offered
-        </CardTitle>
-        <CardContent className="mt-3">
-          <div className="flex flex-wrap gap-2">
-            {(vendor.allServices || vendor.categories || []).map((service, i) => (
-              <Badge key={i} variant="outline">{service}</Badge>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Certifications */}
-      {vendor.certifications?.length > 0 && (
+      {!showAnalysis && vendor.certifications?.length > 0 && (
         <Card>
           <CardTitle className="flex items-center gap-2 text-base">
             <Award className="w-4 h-4" />
@@ -170,7 +241,7 @@ export default function VendorDetails({ vendor }) {
       )}
 
       {/* Commercial Details */}
-      {!isExternal && vendor.avgContractValue && (
+      {!showAnalysis && !isExternal && vendor.avgContractValue && (
         <Card>
           <CardTitle className="flex items-center gap-2 text-base">
             <DollarSign className="w-4 h-4" />
@@ -204,7 +275,7 @@ export default function VendorDetails({ vendor }) {
       )}
 
       {/* Performance Metrics */}
-      {!isExternal && (vendor.slaUptime || vendor.responseTime) && (
+      {!showAnalysis && !isExternal && (vendor.slaUptime || vendor.responseTime) && (
         <Card>
           <CardTitle className="flex items-center gap-2 text-base">
             <Shield className="w-4 h-4" />
@@ -228,14 +299,14 @@ export default function VendorDetails({ vendor }) {
       )}
 
       {/* Notes */}
-      {vendor.notes && (
+      {!showAnalysis && vendor.notes && (
         <Card className="bg-lyzr-light-1 border-0">
           <p className="text-sm text-lyzr-dark-2 italic">{vendor.notes}</p>
         </Card>
       )}
 
       {/* Description for external vendors */}
-      {isExternal && vendor.description && (
+      {!showAnalysis && isExternal && vendor.description && (
         <Card>
           <CardTitle className="text-base">About</CardTitle>
           <CardContent className="mt-3">
@@ -246,12 +317,31 @@ export default function VendorDetails({ vendor }) {
 
       {/* Actions */}
       <div className="flex gap-3 pt-2">
-        <Button variant="primary" className="flex-1">
-          Create RFQ
-        </Button>
-        <Button variant="outline" className="flex-1">
-          Contact Vendor
-        </Button>
+        {isExternal ? (
+          <>
+            <Button
+              variant={showAnalysis ? 'outline' : 'primary'}
+              className="flex-1"
+              onClick={handleGetAnalysis}
+              disabled={isLoadingAnalysis}
+            >
+              <Sparkles className="w-4 h-4" />
+              {isLoadingAnalysis ? 'Analyzing...' : showAnalysis ? 'Hide Analysis' : 'Get AI Analysis'}
+            </Button>
+            <Button variant="outline" className="flex-1">
+              Create RFQ
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="primary" className="flex-1">
+              Create RFQ
+            </Button>
+            <Button variant="outline" className="flex-1">
+              Contact Vendor
+            </Button>
+          </>
+        )}
       </div>
     </div>
   )

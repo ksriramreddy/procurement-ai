@@ -246,3 +246,62 @@ export async function callPricingSuggestionAgent(procurementDetails) {
     throw error
   }
 }
+
+/**
+ * Call vendor analysis agent to get AI-generated details about external vendors
+ * @param {object} vendorInfo - The vendor information (name, headquarters, website, description, services, compliance_score, compliance_rating)
+ * @returns {Promise<object>} - Vendor analysis with overview, positioning, advantages, disadvantages, risks, and use case fit
+ */
+export async function callVendorAnalysisAgent(vendorInfo) {
+  const config = getConfig()
+  const VENDOR_ANALYSIS_AGENT_ID = '69859edfe17e33c11eed1af8'
+  const sessionId = `${VENDOR_ANALYSIS_AGENT_ID}-analysis-${Date.now()}`
+
+  const messagePayload = {
+    vendor_name: vendorInfo.name || '',
+    headquarters: vendorInfo.headquarters || '',
+    website: vendorInfo.website || '',
+    description: vendorInfo.description || '',
+    services: vendorInfo.categories || vendorInfo.services || [],
+    compliance_score: vendorInfo.complianceScore || 0,
+    compliance_rating: vendorInfo.complianceRating || ''
+  }
+
+  const requestBody = {
+    user_id: config.userId,
+    agent_id: VENDOR_ANALYSIS_AGENT_ID,
+    session_id: sessionId,
+    message: JSON.stringify(messagePayload)
+  }
+
+  console.log('🔍 Calling vendor analysis agent...')
+  console.log('Agent ID:', VENDOR_ANALYSIS_AGENT_ID)
+  console.log('Vendor:', vendorInfo.name)
+  console.log('Payload:', JSON.stringify(messagePayload, null, 2))
+
+  try {
+    const response = await fetch(CHAT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': config.apiKey
+      },
+      body: JSON.stringify(requestBody)
+    })
+
+    if (!response.ok) {
+      throw new Error(`Vendor analysis API failed: ${response.status}`)
+    }
+
+    const data = await response.json()
+    console.log('🔍 Vendor analysis agent response received')
+
+    // Parse the response
+    const parsed = extractFinalJSON(data)
+    console.log('🔍 Parsed vendor analysis:', JSON.stringify(parsed, null, 2))
+    return parsed
+  } catch (error) {
+    console.error('❌ Failed to get vendor analysis:', error)
+    throw error
+  }
+}
