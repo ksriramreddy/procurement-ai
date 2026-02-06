@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   TrendingUp,
   AlertTriangle,
@@ -10,7 +11,8 @@ import {
   Brain,
   Globe,
   Users,
-  Lightbulb
+  Lightbulb,
+  ChevronDown
 } from 'lucide-react'
 import Card, { CardTitle, CardContent } from '../ui/Card'
 import Badge from '../ui/Badge'
@@ -46,6 +48,15 @@ const AnalysisSkeleton = () => {
 }
 
 export default function VendorAnalysisCard({ analysis, isLoading = false }) {
+  const [expandedSections, setExpandedSections] = useState({})
+
+  const toggleSection = (sectionName) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionName]: !prev[sectionName]
+    }))
+  }
+
   if (isLoading) {
     return <AnalysisSkeleton />
   }
@@ -74,20 +85,84 @@ export default function VendorAnalysisCard({ analysis, isLoading = false }) {
     confidence_note = ''
   } = parsedAnalysis
 
+  const ExpandableSection = ({ title, icon: Icon, color, children, sectionKey, variant = 'default' }) => {
+    const isExpanded = expandedSections[sectionKey]
+    
+    let borderColor = 'border-accent-success/20'
+    let bgColor = 'from-accent-success/5'
+    let textColor = 'text-accent-success'
+    let hoverBg = 'hover:bg-accent-success/5'
+    
+    if (variant === 'warning') {
+      borderColor = 'border-accent-warning/30'
+      bgColor = 'from-accent-warning/5'
+      textColor = 'text-accent-warning'
+      hoverBg = 'hover:bg-accent-warning/5'
+    } else if (variant === 'error') {
+      borderColor = 'border-accent-error/50'
+      bgColor = 'from-accent-error/5'
+      textColor = 'text-accent-error'
+      hoverBg = 'hover:bg-accent-error/5'
+    } else if (variant === 'info') {
+      borderColor = 'border-accent-cool/30'
+      bgColor = 'from-accent-cool/5'
+      textColor = 'text-accent-cool'
+      hoverBg = 'hover:bg-accent-cool/5'
+    }
+
+    return (
+      <Card className={`border-2 ${borderColor} bg-gradient-to-br ${bgColor} to-transparent overflow-hidden`}>
+        <button
+          onClick={() => toggleSection(sectionKey)}
+          className={`w-full flex items-center justify-between p-4 ${hoverBg} transition-colors text-left`}
+        >
+          <CardTitle className={`flex items-center gap-2 text-base ${textColor} m-0`}>
+            <Icon className="w-4 h-4" />
+            {title}
+          </CardTitle>
+          <motion.div
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+            className={textColor}
+          >
+            <ChevronDown className="w-4 h-4" />
+          </motion.div>
+        </button>
+
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <CardContent className="pt-0">
+                {children}
+              </CardContent>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Card>
+    )
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="space-y-4"
+      className="space-y-3"
     >
       {/* Vendor Overview */}
-      <Card className="border-2 border-accent-success/20 bg-gradient-to-br from-accent-success/5 to-transparent">
-        <CardTitle className="flex items-center gap-2 text-base text-accent-success">
-          <Brain className="w-4 h-4" />
-          AI Analysis
-        </CardTitle>
-        <CardContent className="mt-3 space-y-2">
+      <ExpandableSection
+        title="AI Analysis Overview"
+        icon={Brain}
+        sectionKey="overview"
+        variant="success"
+      >
+        <div className="space-y-2">
           {vendor_overview.market_status && (
             <div className="flex items-center justify-between">
               <span className="text-sm text-lyzr-mid-4">Market Status</span>
@@ -105,38 +180,39 @@ export default function VendorAnalysisCard({ analysis, isLoading = false }) {
               <p className="text-sm text-accent-success font-medium">✓ {vendor_overview.credibility_assessment}</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </ExpandableSection>
 
       {/* Market Positioning */}
       {market_positioning.category && (
-        <Card className="border-l-4 border-accent-cool">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Globe className="w-4 h-4 text-accent-cool" />
-            Market Positioning
-          </CardTitle>
-          <CardContent className="mt-3 space-y-3">
+        <ExpandableSection
+          title="Market Positioning"
+          icon={Globe}
+          sectionKey="positioning"
+          variant="info"
+        >
+          <div className="space-y-3">
             {market_positioning.category && (
               <div>
-                <p className="text-xs text-lyzr-mid-4 mb-1">Category</p>
+                <p className="text-xs text-lyzr-mid-4 mb-1 font-semibold">Category</p>
                 <p className="text-sm text-lyzr-dark-2">{market_positioning.category}</p>
               </div>
             )}
             {market_positioning.target_customers && (
               <div>
-                <p className="text-xs text-lyzr-mid-4 mb-1">Target Customers</p>
+                <p className="text-xs text-lyzr-mid-4 mb-1 font-semibold">Target Customers</p>
                 <p className="text-sm text-lyzr-dark-2">{market_positioning.target_customers}</p>
               </div>
             )}
             {market_positioning.typical_deal_size && (
               <div>
-                <p className="text-xs text-lyzr-mid-4 mb-1">Typical Deal Size</p>
+                <p className="text-xs text-lyzr-mid-4 mb-1 font-semibold">Typical Deal Size</p>
                 <p className="text-sm text-lyzr-dark-2">{market_positioning.typical_deal_size}</p>
               </div>
             )}
             {market_positioning.geographic_focus?.length > 0 && (
               <div>
-                <p className="text-xs text-lyzr-mid-4 mb-1">Geographic Focus</p>
+                <p className="text-xs text-lyzr-mid-4 mb-2 font-semibold">Geographic Focus</p>
                 <div className="flex flex-wrap gap-2">
                   {market_positioning.geographic_focus.map((region, i) => (
                     <Badge key={i} variant="outline" size="sm">{region}</Badge>
@@ -144,18 +220,19 @@ export default function VendorAnalysisCard({ analysis, isLoading = false }) {
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </ExpandableSection>
       )}
 
       {/* Advantages */}
       {advantages?.length > 0 && (
-        <Card className="border-2 border-accent-success/30 bg-gradient-to-br from-accent-success/5 to-transparent">
-          <CardTitle className="flex items-center gap-2 text-base text-accent-success">
-            <CheckCircle className="w-4 h-4" />
-            Strengths ({advantages.length})
-          </CardTitle>
-          <CardContent className="mt-3 space-y-2">
+        <ExpandableSection
+          title={`Strengths (${advantages.length})`}
+          icon={CheckCircle}
+          sectionKey="advantages"
+          variant="success"
+        >
+          <div className="space-y-2">
             {advantages.map((advantage, i) => (
               <motion.div
                 key={i}
@@ -168,18 +245,19 @@ export default function VendorAnalysisCard({ analysis, isLoading = false }) {
                 <span className="text-sm text-lyzr-dark-2">{advantage}</span>
               </motion.div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </ExpandableSection>
       )}
 
       {/* Disadvantages */}
       {disadvantages?.length > 0 && (
-        <Card className="border-2 border-accent-warning/30 bg-gradient-to-br from-accent-warning/5 to-transparent">
-          <CardTitle className="flex items-center gap-2 text-base text-accent-warning">
-            <AlertTriangle className="w-4 h-4" />
-            Considerations ({disadvantages.length})
-          </CardTitle>
-          <CardContent className="mt-3 space-y-2">
+        <ExpandableSection
+          title={`Considerations (${disadvantages.length})`}
+          icon={AlertTriangle}
+          sectionKey="disadvantages"
+          variant="warning"
+        >
+          <div className="space-y-2">
             {disadvantages.map((disadvantage, i) => (
               <motion.div
                 key={i}
@@ -192,18 +270,19 @@ export default function VendorAnalysisCard({ analysis, isLoading = false }) {
                 <span className="text-sm text-lyzr-dark-2">{disadvantage}</span>
               </motion.div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </ExpandableSection>
       )}
 
       {/* Risk Indicators */}
       {Object.keys(risk_indicators).length > 0 && (
-        <Card className="border-l-4 border-accent-error/50">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Shield className="w-4 h-4 text-accent-error/70" />
-            Risk Assessment
-          </CardTitle>
-          <CardContent className="mt-3 space-y-3">
+        <ExpandableSection
+          title="Risk Assessment"
+          icon={Shield}
+          sectionKey="risks"
+          variant="error"
+        >
+          <div className="space-y-3">
             {risk_indicators.operational_risk && (
               <div className="p-3 rounded-lg bg-accent-error/5 border border-accent-error/20">
                 <div className="flex items-center gap-2 mb-1">
@@ -231,18 +310,19 @@ export default function VendorAnalysisCard({ analysis, isLoading = false }) {
                 <p className="text-sm text-lyzr-dark-2">{risk_indicators.vendor_lock_in_risk}</p>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </ExpandableSection>
       )}
 
       {/* Use Case Fit */}
       {use_case_fit.best_suited_for?.length > 0 && (
-        <Card className="border-l-4 border-accent-cool">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Target className="w-4 h-4 text-accent-cool" />
-            Best Use Cases
-          </CardTitle>
-          <CardContent className="mt-3 space-y-2">
+        <ExpandableSection
+          title="Best Use Cases"
+          icon={Target}
+          sectionKey="usecases"
+          variant="info"
+        >
+          <div className="space-y-2">
             {use_case_fit.best_suited_for.map((useCase, i) => (
               <motion.div
                 key={i}
@@ -255,8 +335,8 @@ export default function VendorAnalysisCard({ analysis, isLoading = false }) {
                 <span className="text-sm text-lyzr-dark-2">{useCase}</span>
               </motion.div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </ExpandableSection>
       )}
 
       {/* Confidence Note */}
