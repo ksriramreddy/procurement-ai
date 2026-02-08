@@ -15,13 +15,17 @@ import {
   CheckCircle,
   AlertCircle,
   Info,
-  Sparkles
+  Sparkles,
+  ThumbsUp,
+  ThumbsDown,
+  Zap,
+  X
 } from 'lucide-react'
 import Input, { Textarea } from '../ui/Input'
 import Button from '../ui/Button'
 import Badge from '../ui/Badge'
 import Card from '../ui/Card'
-import { generateRfqDocument } from '../../services/api'
+import { generateRfqDocument, callPricingSuggestionAgent } from '../../services/api'
 import { useChatStore } from '../../store/chatStore'
 
 const SECTIONS = [
@@ -46,7 +50,7 @@ const SECTIONS = [
 ]
 
 export default function RFQForm({ rfqData }) {
-  const { currentChatId, setRfqDocument, addMessage } = useChatStore()
+  const { currentChatId, setRfqDocument, addMessage, setRfqData, setPricingLoading } = useChatStore()
 
   const [formData, setFormData] = useState({
     rfq_id: '',
@@ -64,25 +68,32 @@ export default function RFQForm({ rfqData }) {
   const [expandedSections, setExpandedSections] = useState(['general'])
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState(null)
+  
+  // Pricing suggestion states
+  const [isLoadingPrice, setIsLoadingPrice] = useState(false)
+  const [feedbackText, setFeedbackText] = useState('')
+  const [showFeedbackTooltip, setShowFeedbackTooltip] = useState(false)
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
+  const [priceError, setPriceError] = useState(null)
+  const [pricingValidationError, setPricingValidationError] = useState(null)
 
   // Update form when rfqData changes
   useEffect(() => {
     if (rfqData) {
-      setFormData(prev => ({
-        ...prev,
-        rfq_id: rfqData.rfqId || prev.rfq_id,
-        organization_name: rfqData.organizationName || prev.organization_name,
-        contact_name: rfqData.contactPerson?.name || prev.contact_name,
-        contact_email: rfqData.contactPerson?.email || prev.contact_email,
-        procurement_type: rfqData.procurementType || prev.procurement_type,
-        requirement_summary: rfqData.requirementSummary || prev.requirement_summary,
-        quantity: rfqData.quantity || prev.quantity,
-        delivery_timeline: rfqData.deliveryTimeline || prev.delivery_timeline,
-        budget_range: rfqData.budgetRange || prev.budget_range,
+      setFormData({
+        rfq_id: rfqData.rfqId || '',
+        organization_name: rfqData.organizationName || '',
+        contact_name: rfqData.contactPerson?.name || '',
+        contact_email: rfqData.contactPerson?.email || '',
+        procurement_type: rfqData.procurementType || '',
+        requirement_summary: rfqData.requirementSummary || '',
+        quantity: rfqData.quantity || '',
+        delivery_timeline: rfqData.deliveryTimeline || '',
+        budget_range: rfqData.budgetRange || '',
         response_deadline: rfqData.responseDeadline
           ? new Date(rfqData.responseDeadline).toISOString().split('T')[0]
-          : prev.response_deadline
-      }))
+          : ''
+      })
 
       // Expand all sections if data is populated
       if (rfqData.organizationName) {
@@ -93,6 +104,83 @@ export default function RFQForm({ rfqData }) {
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleAIPriceRecommendation = async () => {
+    setPricingValidationError(null)
+    setPriceError(null)
+    
+    // Validate requirement summary
+    if (!formData.requirement_summary?.trim()) {
+      setPricingValidationError('Requirement summary is required to get AI price recommendation')
+      return
+    }
+
+    setIsLoadingPrice(true)
+    setPricingLoading(currentChatId, true)
+    try {
+      const response = await callPricingSuggestionAgent({
+        requirementSummary: formData.requirement_summary,
+        budgetRange: formData.budget_range,
+        procurementType: formData.procurement_type,
+        item: formData.procurement_type
+      })
+
+      if (response?.price) {
+        // Update RFQ data with manual pricing
+        setRfqData(currentChatId, {
+          ...rfqData,
+          suggestedPrice: response.price,
+          suggestedCurrency: response.currency || 'USD'
+        })
+      } else {
+        setPriceError('No price suggestion received')
+      }
+    } catch (error) {
+      console.error('Failed to get price recommendation:', error)
+      setPriceError('Failed to get AI price recommendation. Try again.')
+    } finally {
+      setIsLoadingPrice(false)
+      setPricingLoading(currentChatId, false)
+    }
+  }
+
+  const handleAcceptSuggestedPrice = () => {
+    if (rfqData?.suggestedPrice) {
+      setFormData(prev => ({
+        ...prev,
+        budget_range: `$${rfqData.suggestedPrice.toLocaleString()}`
+      }))
+    }
+  }
+
+  const handleRejectSuggestedPrice = () => {
+    setShowFeedbackTooltip(true)
+    setFeedbackText('')
+  }
+
+  const handleSubmitFeedback = async () => {
+    if (!feedbackText.trim()) {
+      return
+    }
+
+    setIsSubmittingFeedback(true)
+    try {
+      console.log('Feedback submitted:', feedbackText)
+      // Show success animation for 600ms then close
+      await new Promise(resolve => setTimeout(resolve, 600))
+      setShowFeedbackTooltip(false)
+      setFeedbackText('')
+      // Clear suggested price after feedback
+      setRfqData(currentChatId, {
+        ...rfqData,
+        suggestedPrice: null
+      })
+    } catch (error) {
+      console.error('Failed to submit feedback:', error)
+    } finally {
+      setIsSubmittingFeedback(false)
+    }
   }
 
   const toggleSection = (sectionId) => {
@@ -310,13 +398,107 @@ export default function RFQForm({ rfqData }) {
                           onChange={(e) => handleChange('delivery_timeline', e.target.value)}
                           required
                         />
-                        <Input
-                          label="Budget Range"
-                          placeholder={isFieldFilled('budget_range') ? '' : 'e.g., $50,000 - $100,000'}
-                          value={formData.budget_range}
-                          onChange={(e) => handleChange('budget_range', e.target.value)}
-                          required
-                        />
+                        <div>
+                          <Input
+                            label="Budget Range"
+                            placeholder={isFieldFilled('budget_range') ? '' : 'e.g., $50,000 - $100,000'}
+                            value={formData.budget_range}
+                            onChange={(e) => handleChange('budget_range', e.target.value)}
+                            required
+                          />
+                          
+                          {/* AI Price Recommendation Section */}
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="mt-3 space-y-2"
+                          >
+                            {/* Loading State - Auto or Manual */}
+                            {(isLoadingPrice || rfqData?.isPricingLoading) && (
+                              <motion.div
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-lyzr-light-2 border border-lyzr-cream"
+                              >
+                                <motion.div
+                                  animate={{ opacity: [0.4, 1, 0.4] }}
+                                  transition={{ duration: 2, repeat: Infinity }}
+                                  className="text-xs font-medium text-lyzr-congo flex items-center gap-2"
+                                >
+                                  <motion.div
+                                    animate={{ scale: [1, 1.2, 1] }}
+                                    transition={{ duration: 2, repeat: Infinity }}
+                                    className="w-2 h-2 rounded-full bg-accent-success"
+                                  />
+                                  Analyzing AI Recommendation Price...
+                                </motion.div>
+                              </motion.div>
+                            )}
+                            
+                            {/* Auto or Manual Suggested Price Display */}
+                            {rfqData?.suggestedPrice && !isLoadingPrice && !rfqData?.isPricingLoading && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-accent-success/10 border border-accent-success/20"
+                              >
+                                <span className="text-xs text-lyzr-mid-4">AI Suggested:</span>
+                                <span className="text-sm font-bold text-accent-success">${rfqData.suggestedPrice.toLocaleString()}</span>
+                                <button
+                                  type="button"
+                                  onClick={handleAcceptSuggestedPrice}
+                                  title="Accept suggested price"
+                                  className="ml-auto p-1 hover:bg-accent-success/20 rounded transition-colors"
+                                >
+                                  <ThumbsUp className="w-4 h-4 text-accent-success" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleRejectSuggestedPrice}
+                                  title="Reject suggested price"
+                                  className="p-1 hover:bg-accent-error/20 rounded transition-colors"
+                                >
+                                  <ThumbsDown className="w-4 h-4 text-accent-error" />
+                                </button>
+                              </motion.div>
+                            )}
+                            
+                            {/* Validation Error */}
+                            {pricingValidationError && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-2 p-2 bg-accent-error/10 border border-accent-error/20 rounded-lg"
+                              >
+                                <AlertCircle className="w-3.5 h-3.5 text-accent-error flex-shrink-0" />
+                                <span className="text-xs text-accent-error">{pricingValidationError}</span>
+                              </motion.div>
+                            )}
+                            
+                            {/* Price Error */}
+                            {priceError && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-2 p-2 bg-accent-error/10 border border-accent-error/20 rounded-lg"
+                              >
+                                <AlertCircle className="w-3.5 h-3.5 text-accent-error flex-shrink-0" />
+                                <span className="text-xs text-accent-error">{priceError}</span>
+                              </motion.div>
+                            )}
+                            
+                            {/* Manual AI Recommendation Button (show only if no auto suggestion) */}
+                            {!rfqData?.suggestedPrice && (
+                              <button
+                                type="button"
+                                onClick={handleAIPriceRecommendation}
+                                disabled={isLoadingPrice}
+                                className="w-full text-xs px-3 py-2 bg-lyzr-light-2 hover:bg-lyzr-cream text-lyzr-congo rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 border border-lyzr-cream"
+                              >
+                                <Zap className="w-3 h-3" />
+                                {isLoadingPrice ? 'Analyzing AI Recommendation Price...' : 'Get AI Recommendation'}
+                              </button>
+                            )}
+                          </motion.div>
+                        </div>
                         <Input
                           label="Response Deadline"
                           type="date"
@@ -333,6 +515,64 @@ export default function RFQForm({ rfqData }) {
           </motion.div>
         )
       })}
+
+      {/* Feedback Tooltip */}
+      <AnimatePresence>
+        {showFeedbackTooltip && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+            className="fixed bottom-20 right-6 z-50 bg-white rounded-lg shadow-lg p-3 max-w-xs border border-lyzr-cream"
+          >
+            {isSubmittingFeedback ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-2"
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 0.6 }}
+                  className="text-xl text-accent-success"
+                >
+                  ✓
+                </motion.div>
+                <p className="text-xs text-lyzr-congo font-medium mt-1">Thanks for feedback!</p>
+              </motion.div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-lyzr-mid-4 font-medium">Why did you reject this?</p>
+                <input
+                  type="text"
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  placeholder="Brief feedback..."
+                  className="w-full px-2 py-1.5 text-xs border border-lyzr-cream rounded-lg focus:outline-none focus:ring-1 focus:ring-accent-success/50"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowFeedbackTooltip(false)}
+                    className="flex-1 px-2 py-1 text-xs border border-lyzr-cream text-lyzr-congo rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Skip
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSubmitFeedback}
+                    disabled={!feedbackText.trim()}
+                    className="flex-1 px-2 py-1 text-xs bg-accent-success text-white rounded-lg hover:bg-accent-success/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Info Banner */}
       <Card className="bg-accent-cool/5 border-accent-cool/20">

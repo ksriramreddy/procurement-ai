@@ -1,41 +1,70 @@
-/**
- * Extract clean JSON from tool_output in the metrics WebSocket event
- *
- * tool_output format:
- * "{'response': '{\"from\":\"rfq_input_generator\", ... }', 'module_outputs': {}, 'respond_directly': False}"
- */
 export function parseToolOutput(toolOutputStr) {
   if (!toolOutputStr) return null
 
   try {
-    // Step 1: Extract ONLY the response value safely
-    const responseMatch = toolOutputStr.match(
-      /'response'\s*:\s*'([\s\S]*?)'\s*(,|})/
+    // Step 1: Extract the response value
+    // First try to find the full response value with proper closing quote
+    let responseMatch = toolOutputStr.match(
+      /'response'\s*:\s*'([\s\S]*?)'\s*(?:,\s*'module_outputs'|,\s*'respond_directly'|}\s*$)/
     )
+    
+    // If that fails, try a more lenient pattern for incomplete responses
+    if (!responseMatch) {
+      responseMatch = toolOutputStr.match(
+        /'response'\s*:\s*'([\s\S]+?)(?='|\s*[,}]|$)/
+      )
+    }
 
     if (!responseMatch || !responseMatch[1]) {
       console.error('❌ response field not found in tool_output')
-      console.log('Raw tool_output:', toolOutputStr.substring(0, 300))
+      console.log('Raw tool_output:', toolOutputStr.substring(0, 500))
       return null
     }
 
     let responseStr = responseMatch[1]
+    console.log('📥 Raw extracted response length:', responseStr.length, 'chars')
 
-    // Step 2: Unescape escaped characters
-    responseStr = responseStr
-      .replace(/\\n/g, '')
-      .replace(/\\"/g, '"')
-      .trim()
+    // Step 2: Unescape escaped characters in the correct order
+    // First, handle double backslashes (\\) to preserve them during unescaping
+    responseStr = responseStr.replace(/\\\\/g, '\x00DOUBLE_BACKSLASH\x00')
+    
+    // Then unescape newlines, quotes, and other escape sequences
+    responseStr = responseStr.replace(/\\n/g, '\n')  // Convert escaped newlines back to actual newlines
+    responseStr = responseStr.replace(/\\t/g, '\t')  // Convert escaped tabs back to actual tabs
+    responseStr = responseStr.replace(/\\"/g, '"')   // Unescape double quotes
+    responseStr = responseStr.replace(/\\'/g, "'")   // Unescape single quotes
+    responseStr = responseStr.replace(/\\\//g, '/')  // Unescape forward slashes
+    
+    // Restore double backslashes
+    responseStr = responseStr.replace(/\x00DOUBLE_BACKSLASH\x00/g, '\\')
 
-    // Step 3: Parse final clean JSON
+    responseStr = responseStr.trim()
+    
+    // Step 3: Validate and close incomplete JSON if needed
+    // Check if JSON is incomplete (missing closing braces/brackets)
+    const openBraces = (responseStr.match(/{/g) || []).length
+    const closeBraces = (responseStr.match(/}/g) || []).length
+    const openBrackets = (responseStr.match(/\[/g) || []).length
+    const closeBrackets = (responseStr.match(/]/g) || []).length
+    
+    if (openBraces > closeBraces) {
+      console.warn(`⚠️ Incomplete JSON: ${openBraces} opening braces but ${closeBraces} closing braces`)
+      responseStr += '}'.repeat(openBraces - closeBraces)
+    }
+    
+    if (openBrackets > closeBrackets) {
+      console.warn(`⚠️ Incomplete JSON: ${openBrackets} opening brackets but ${closeBrackets} closing brackets`)
+      responseStr += ']'.repeat(openBrackets - closeBrackets)
+    }
+
+    // Step 4: Parse final clean JSON
     const parsed = JSON.parse(responseStr)
 
-    console.log('✅ EXTRACTED CLEAN JSON:')
-    console.log(JSON.stringify(parsed, null, 2))
-
+    console.log('✅ Successfully parsed JSON from WebSocket response')
     return parsed
   } catch (err) {
     console.error('❌ Failed parsing inner response JSON:', err.message)
+    console.error('   Attempted to parse:', toolOutputStr?.substring(0, 500))
     return null
   }
 }

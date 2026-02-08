@@ -33,6 +33,7 @@ const ACTIONS = {
   CLEAR_AGENT_STATUS: 'CLEAR_AGENT_STATUS',
   SET_VENDORS: 'SET_VENDORS',
   SET_RFQ_DATA: 'SET_RFQ_DATA',
+  SET_PRICING_LOADING: 'SET_PRICING_LOADING',
   SHOW_DETAIL_PANEL: 'SHOW_DETAIL_PANEL',
   HIDE_DETAIL_PANEL: 'HIDE_DETAIL_PANEL',
   SET_SELECTED_VENDOR: 'SET_SELECTED_VENDOR',
@@ -58,6 +59,7 @@ function chatReducer(state, action) {
         externalVendors: [],
         rfqData: null,
         rfqDocument: null,
+        isPricingLoading: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }
@@ -180,6 +182,20 @@ function chatReducer(state, action) {
         chats: {
           ...state.chats,
           [chatId]: { ...existingChat, rfqData }
+        }
+      }
+    }
+
+    case ACTIONS.SET_PRICING_LOADING: {
+      const { chatId, isPricingLoading } = action.payload
+      const existingChat = state.chats[chatId]
+      if (!existingChat) return state
+
+      return {
+        ...state,
+        chats: {
+          ...state.chats,
+          [chatId]: { ...existingChat, isPricingLoading }
         }
       }
     }
@@ -338,6 +354,10 @@ export function ChatProvider({ children }) {
     dispatch({ type: ACTIONS.SET_RFQ_DATA, payload: { chatId, rfqData } })
   }, [])
 
+  const setPricingLoading = useCallback((chatId, isPricingLoading) => {
+    dispatch({ type: ACTIONS.SET_PRICING_LOADING, payload: { chatId, isPricingLoading } })
+  }, [])
+
   const showDetailPanel = useCallback((type) => {
     dispatch({ type: ACTIONS.SHOW_DETAIL_PANEL, payload: type })
   }, [])
@@ -383,6 +403,7 @@ export function ChatProvider({ children }) {
     clearAgentStatus,
     setVendors,
     setRfqData,
+    setPricingLoading,
     showDetailPanel,
     hideDetailPanel,
     setSelectedVendor,

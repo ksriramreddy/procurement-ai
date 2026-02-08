@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useChatStore } from '../../store/chatStore'
-import { sendMessage, generateLyzrSessionId, getApiConfig } from '../../services/api'
+import { sendMessage, generateLyzrSessionId, getApiConfig, callPricingSuggestionAgent } from '../../services/api'
 import { websocketService } from '../../services/websocket'
 import { queryVendors, transformVendorForDisplay } from '../../services/mongodb'
 import MessageList from '../chat/MessageList'
@@ -27,6 +27,7 @@ export default function ChatArea() {
     updateChat,
     setVendors,
     setRfqData,
+    setPricingLoading,
     showDetailPanel
   } = useChatStore()
 
@@ -253,13 +254,6 @@ export default function ChatArea() {
         break
 
       case 'rfq_data':
-        console.log('📝 RFQ INPUT GENERATOR OUTPUT:')
-        console.log('   RFQ ID:', parsedData.rfqId)
-        console.log('   Organization:', parsedData.organizationName)
-        console.log('   Contact:', parsedData.contactPerson?.name)
-        console.log('   Procurement Type:', parsedData.procurementType)
-        console.log('   Quantity:', parsedData.quantity)
-        console.log('   Budget:', parsedData.budgetRange)
         // Set RFQ form data
         setRfqData(currentChatId, parsedData)
 
@@ -267,6 +261,38 @@ export default function ChatArea() {
         const rfqActionMsg = currentChat?.messages?.find(m => m.actionType === 'rfq' && !m.actionComplete)
         if (rfqActionMsg) {
           updateMessage(currentChatId, rfqActionMsg.id, { actionComplete: true })
+        }
+
+        // Auto-call pricing suggestion if requirement summary exists
+        if (parsedData.requirementSummary) {
+          console.log('💰 Auto-calling pricing suggestion agent with requirement summary...')
+          setPricingLoading(currentChatId, true)
+          
+          try {
+            const pricingResponse = await callPricingSuggestionAgent({
+              requirementSummary: parsedData.requirementSummary,
+              budgetRange: parsedData.budgetRange,
+              procurementType: parsedData.procurementType,
+              item: parsedData.procurementType,
+              quantity: parsedData.quantity
+            })
+            
+            if (pricingResponse?.price) {
+              console.log('💰 Pricing suggestion received:', pricingResponse.price)
+              
+              // Update RFQ data with suggested pricing
+              const updatedRfqData = {
+                ...parsedData,
+                suggestedPrice: pricingResponse.price,
+                suggestedCurrency: pricingResponse.currency || 'USD'
+              }
+              setRfqData(currentChatId, updatedRfqData)
+            }
+          } catch (error) {
+            console.error('❌ Failed to get auto pricing suggestion:', error)
+          } finally {
+            setPricingLoading(currentChatId, false)
+          }
         }
         break
 

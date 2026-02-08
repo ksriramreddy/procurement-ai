@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Send, CheckCircle, Edit3, FileText, X } from 'lucide-react'
 import Button from '../ui/Button'
 import { useChatStore } from '../../store/chatStore'
-import { callPricingSuggestionAgent } from '../../services/api'
 
 export default function RFQPreview({ rfqDocument }) {
   const { currentChat, currentChatId, addMessage, showDetailPanel } = useChatStore()
@@ -28,30 +27,7 @@ export default function RFQPreview({ rfqDocument }) {
       actionComplete: true
     })
 
-    // Call pricing suggestion agent
-    try {
-      const rfqData = currentChat?.rfqData
-      const pricingResponse = await callPricingSuggestionAgent(rfqData)
-      
-      // Add pricing suggestion message
-      addMessage(currentChatId, {
-        id: `pricing-suggestion-${Date.now()}`,
-        role: 'assistant',
-        content: `Based on your procurement requirements, here's the AI-suggested pricing:`,
-        timestamp: new Date().toISOString(),
-        actionType: 'pricing-suggestion',
-        pricingData: {
-          price: pricingResponse?.price,
-          currency: pricingResponse?.currency || 'USD'
-        },
-        actionComplete: false
-      })
-    } catch (error) {
-      console.error('Failed to get pricing suggestion:', error)
-      // Don't fail the send if pricing fails
-    } finally {
-      setIsSending(false)
-    }
+    setIsSending(false)
 
     // Auto-hide success after 3 seconds
     setTimeout(() => {
