@@ -147,10 +147,21 @@ export default function RFQForm({ rfqData }) {
 
   const handleAcceptSuggestedPrice = () => {
     if (rfqData?.suggestedPrice) {
+      const formattedPrice = `$${rfqData.suggestedPrice.toLocaleString()}`
+      
+      // Update the form data
       setFormData(prev => ({
         ...prev,
-        budget_range: `$${rfqData.suggestedPrice.toLocaleString()}`
+        budget_range: formattedPrice
       }))
+      
+      // Update the store with both the new budget AND clear the suggestion
+      // This prevents the useEffect from overwriting the budget field
+      setRfqData(currentChatId, {
+        ...rfqData,
+        budgetRange: formattedPrice,
+        suggestedPrice: null
+      })
     }
   }
 

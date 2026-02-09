@@ -1,4 +1,5 @@
 const CHAT_URL = 'https://agent-prod.studio.lyzr.ai/v3/inference/chat/'
+const ASSET_UPLOAD_URL = 'https://agent-prod.studio.lyzr.ai/v3/assets/upload'
 
 /**
  * Get environment variables
@@ -12,12 +13,66 @@ function getConfig() {
 }
 
 /**
+ * Upload file to LYZR Assets API
+ * @param {File} file - File to upload (pdf, pptx, docx, jpg, png)
+ * @returns {Promise<string>} - Asset ID
+ */
+export async function uploadAsset(file) {
+  const config = getConfig()
+  
+  // Validate file type
+  const supportedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png']
+  
+  if (!supportedTypes.includes(file.type)) {
+    throw new Error(`Unsupported file type: ${file.type}. Supported types: PDF, PPTX, DOCX, JPG, PNG`)
+  }
+  
+  console.log('⬆️ Uploading asset:', file.name)
+  
+  const formData = new FormData()
+  formData.append('files', file)
+  
+  try {
+    const response = await fetch(ASSET_UPLOAD_URL, {
+      method: 'POST',
+      headers: {
+        'x-api-key': config.apiKey
+      },
+      body: formData
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Asset upload failed: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    console.log('✅ Upload response:', JSON.stringify(data, null, 2))
+    
+    // Extract asset_id from response
+    const result = data.results?.[0]
+    
+    if (!result || !result.success || !result.asset_id) {
+      throw new Error(`Asset upload failed: ${result?.error || 'Unknown error'}`)
+    }
+    
+    const assetId = result.asset_id
+    console.log('🆔 Asset ID:', assetId)
+    
+    return assetId
+  } catch (error) {
+    console.error('❌ Failed to upload asset:', error)
+    throw error
+  }
+}
+
+/**
  * Send message to LYZR Chat API
  * @param {string} message - User message
  * @param {string} sessionId - Session ID for the chat
+ * @param {Array<string>} assets - Optional array of asset IDs to include
  * @returns {Promise<object>} - API response
  */
-export async function sendMessage(message, sessionId) {
+export async function sendMessage(message, sessionId, assets = []) {
   const config = getConfig()
 
   const messagePayload = {
@@ -31,6 +86,11 @@ export async function sendMessage(message, sessionId) {
     agent_id: config.agentId,
     session_id: sessionId,
     message: JSON.stringify(messagePayload)
+  }
+
+  // Add assets if provided
+  if (assets && assets.length > 0) {
+    requestBody.assets = assets
   }
 
   console.log('\n')

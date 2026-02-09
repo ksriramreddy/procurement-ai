@@ -34,6 +34,7 @@ export default function ChatArea() {
   const [sessionId, setSessionId] = useState(null)
   const messagesEndRef = useRef(null)
   const requestCountersRef = useRef({ DATABASE_QUERY: 0, RFQ_REQUEST: 0, GENERAL_CHAT: 0 })
+  const shouldCallPricingRef = useRef(false)
 
   // Loading message variations based on request type
   const getLoadingMessage = (conversationType) => {
@@ -186,6 +187,10 @@ export default function ChatArea() {
           if (!isDetailPanelOpen || detailPanelType !== 'rfq') {
             showDetailPanel('rfq')
           }
+          
+          // Mark that we should call pricing agent when RFQ data arrives
+          // Use a refs approach for more reliable flag passing
+          shouldCallPricingRef.current = true
         } else if (conversationType === 'GENERAL_CHAT') {
           console.log('   → Adding General Chat loading message')
           addMessage(currentChatId, {
@@ -253,7 +258,8 @@ export default function ChatArea() {
         }
         break
 
-      case 'rfq_data':
+      case 'rfq_data': {
+        console.log('📋 RFQ Data received')
         // Set RFQ form data
         setRfqData(currentChatId, parsedData)
 
@@ -263,9 +269,10 @@ export default function ChatArea() {
           updateMessage(currentChatId, rfqActionMsg.id, { actionComplete: true })
         }
 
-        // Auto-call pricing suggestion if requirement summary exists
-        if (parsedData.requirementSummary) {
-          console.log('💰 Auto-calling pricing suggestion agent with requirement summary...')
+        // Call pricing API if RFQ_REQUEST decision was made (using ref for reliable flag)
+        if (shouldCallPricingRef.current && parsedData.requirementSummary) {
+          console.log('💰 Calling pricing suggestion agent with RFQ data...')
+          // Set loading state IMMEDIATELY
           setPricingLoading(currentChatId, true)
           
           try {
@@ -289,12 +296,15 @@ export default function ChatArea() {
               setRfqData(currentChatId, updatedRfqData)
             }
           } catch (error) {
-            console.error('❌ Failed to get auto pricing suggestion:', error)
+            console.error('❌ Failed to get pricing suggestion:', error)
           } finally {
             setPricingLoading(currentChatId, false)
+            // Clear the flag
+            shouldCallPricingRef.current = false
           }
         }
         break
+      }
 
       case 'manager_response':
         console.log('🤖 Manager response received')
@@ -319,7 +329,7 @@ export default function ChatArea() {
   }, [currentChat?.messages])
 
   // Handle send message
-  const handleSendMessage = async (content) => {
+  const handleSendMessage = async (content, assetId) => {
     if (!content.trim()) return
 
     // Create chat if none exists
@@ -347,6 +357,9 @@ export default function ChatArea() {
     console.log('╠══════════════════════════════════════════════════════════════╣')
     console.log('║ Session ID:', newSessionId)
     console.log('║ Message:', content.trim().substring(0, 100) + (content.length > 100 ? '...' : ''))
+    if (assetId) {
+      console.log('║ Asset ID:', assetId)
+    }
     console.log('╚══════════════════════════════════════════════════════════════╝')
     console.log('\n')
 
@@ -356,7 +369,9 @@ export default function ChatArea() {
 
     try {
       // Send to LYZR API - response is handled via WebSocket
-      await sendMessage(content.trim(), newSessionId)
+      // Pass asset IDs if provided
+      const assets = assetId ? [assetId] : []
+      await sendMessage(content.trim(), newSessionId, assets)
 
       console.log('✅ API call completed. Clearing loading state.')
 
@@ -395,6 +410,31 @@ export default function ChatArea() {
     console.log('📌 Action card clicked:', actionType)
     showDetailPanel(actionType)
   }, [showDetailPanel])
+
+  // Handle file uploaded
+  const handleFileUploaded = (fileInfo) => {
+    // Create chat if none exists
+    let chatId = currentChatId
+    if (!chatId) {
+      chatId = createChat()
+    }
+
+    // Add file upload message to chat
+    const fileMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: '',
+      timestamp: new Date().toISOString(),
+      fileUpload: {
+        name: fileInfo.name,
+        size: fileInfo.size,
+        type: fileInfo.type,
+        assetId: fileInfo.assetId
+      }
+    }
+    addMessage(chatId, fileMessage)
+    console.log('📁 File uploaded message added to chat')
+  }
 
   return (
     <div className="flex-1 flex flex-col h-full bg-lyzr-white-amber">
@@ -450,6 +490,7 @@ export default function ChatArea() {
         <div className="max-w-4xl mx-auto">
           <ChatInput
             onSend={handleSendMessage}
+            onFileUploaded={handleFileUploaded}
             disabled={isLoading}
             placeholder="Ask anything..."
           />
