@@ -33,6 +33,7 @@ const ACTIONS = {
   CLEAR_AGENT_STATUS: 'CLEAR_AGENT_STATUS',
   SET_VENDORS: 'SET_VENDORS',
   SET_RFQ_DATA: 'SET_RFQ_DATA',
+  SET_RFP_DATA: 'SET_RFP_DATA',
   SET_PRICING_LOADING: 'SET_PRICING_LOADING',
   SHOW_DETAIL_PANEL: 'SHOW_DETAIL_PANEL',
   HIDE_DETAIL_PANEL: 'HIDE_DETAIL_PANEL',
@@ -58,6 +59,7 @@ function chatReducer(state, action) {
         vendors: [],
         externalVendors: [],
         rfqData: null,
+        rfpData: null,
         rfqDocument: null,
         isPricingLoading: false,
         createdAt: new Date().toISOString(),
@@ -78,9 +80,10 @@ function chatReducer(state, action) {
       return {
         ...state,
         currentChatId: action.payload,
-        isDetailPanelOpen: chat?.conversationType === 'DATABASE_QUERY' || chat?.conversationType === 'RFQ_REQUEST',
+        isDetailPanelOpen: chat?.conversationType === 'DATABASE_QUERY' || chat?.conversationType === 'RFQ_REQUEST' || chat?.conversationType === 'RFP_REQUEST',
         detailPanelType: chat?.conversationType === 'DATABASE_QUERY' ? 'vendors' :
-                        chat?.conversationType === 'RFQ_REQUEST' ? 'rfq' : null
+                        chat?.conversationType === 'RFQ_REQUEST' ? 'rfq' :
+                        chat?.conversationType === 'RFP_REQUEST' ? 'rfp' : null
       }
 
     case ACTIONS.ADD_MESSAGE: {
@@ -182,6 +185,20 @@ function chatReducer(state, action) {
         chats: {
           ...state.chats,
           [chatId]: { ...existingChat, rfqData }
+        }
+      }
+    }
+
+    case ACTIONS.SET_RFP_DATA: {
+      const { chatId, rfpData } = action.payload
+      const existingChat = state.chats[chatId]
+      if (!existingChat) return state
+
+      return {
+        ...state,
+        chats: {
+          ...state.chats,
+          [chatId]: { ...existingChat, rfpData }
         }
       }
     }
@@ -354,6 +371,10 @@ export function ChatProvider({ children }) {
     dispatch({ type: ACTIONS.SET_RFQ_DATA, payload: { chatId, rfqData } })
   }, [])
 
+  const setRfpData = useCallback((chatId, rfpData) => {
+    dispatch({ type: ACTIONS.SET_RFP_DATA, payload: { chatId, rfpData } })
+  }, [])
+
   const setPricingLoading = useCallback((chatId, isPricingLoading) => {
     dispatch({ type: ACTIONS.SET_PRICING_LOADING, payload: { chatId, isPricingLoading } })
   }, [])
@@ -403,6 +424,7 @@ export function ChatProvider({ children }) {
     clearAgentStatus,
     setVendors,
     setRfqData,
+    setRfpData,
     setPricingLoading,
     showDetailPanel,
     hideDetailPanel,

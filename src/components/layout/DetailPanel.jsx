@@ -7,7 +7,8 @@ import Button from '../ui/Button'
 import VendorTable from '../vendors/VendorTable'
 import VendorDetails from '../vendors/VendorDetails'
 import RFQForm from '../rfq/RFQForm'
-import RFQPreview from '../rfq/RFQPreview'
+import RFPForm from '../rfq/RFPForm'
+import RFQPdfPreview from '../rfq/RFQPdfPreview'
 
 export default function DetailPanel() {
   const {
@@ -105,6 +106,8 @@ export default function DetailPanel() {
         return 'Vendor Details'
       case 'rfq':
         return 'New RFQ Request'
+      case 'rfp':
+        return 'New RFP Request'
       case 'rfq-preview':
         return 'RFQ Document'
       default:
@@ -119,6 +122,9 @@ export default function DetailPanel() {
     }
     if (detailPanelType === 'rfq') {
       return 'Details will be auto filled from conversations or file uploads'
+    }
+    if (detailPanelType === 'rfp') {
+      return 'Details will be auto filled from conversations'
     }
     if (detailPanelType === 'rfq-preview') {
       return 'Review and edit before sending'
@@ -249,6 +255,19 @@ export default function DetailPanel() {
             </motion.div>
           )}
 
+          {detailPanelType === 'rfp' && (
+            <motion.div
+              key="rfp"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              className="h-full"
+            >
+              <RFPForm rfpData={currentChat?.rfpData} />
+            </motion.div>
+          )}
+
           {detailPanelType === 'rfq-preview' && (
             <motion.div
               key="rfq-preview"
@@ -258,7 +277,7 @@ export default function DetailPanel() {
               transition={{ duration: 0.2 }}
               className="h-full"
             >
-              <RFQPreview rfqDocument={currentChat?.rfqDocument} />
+              <RFQPdfPreview rfqDocument={currentChat?.rfqDocument} />
             </motion.div>
           )}
         </AnimatePresence>

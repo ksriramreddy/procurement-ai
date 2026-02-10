@@ -226,10 +226,27 @@ export default function RFQForm({ rfqData }) {
       const result = await generateRfqDocument(formData)
       console.log('📝 RFQ document generated:', result)
 
-      // Extract the content from the response
-      const rfqContent = result?.content || result?.response || ''
+      // Extract the content from the nested response structure
+      // Response format: { response: { from: "rfq_generator", content: "..." } }
+      let rfqContent = ''
+      
+      if (result?.response?.content) {
+        // If result is { response: { content: "..." } }
+        rfqContent = result.response.content
+      } else if (result?.content) {
+        // If result is already { from: "rfq_generator", content: "..." }
+        rfqContent = result.content
+      } else if (typeof result === 'string') {
+        // If result is a string, try to parse it
+        try {
+          const parsed = JSON.parse(result)
+          rfqContent = parsed?.content || parsed?.response?.content || ''
+        } catch {
+          rfqContent = result
+        }
+      }
 
-      if (rfqContent) {
+      if (rfqContent ) {
         // Store the generated RFQ document in the chat store
         setRfqDocument(currentChatId, rfqContent)
 

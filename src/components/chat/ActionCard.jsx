@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { FileText, Database, ChevronRight, CheckCircle2, Send, Sparkles } from 'lucide-react'
+import { FileText, Database, ChevronRight, CheckCircle2, Send, Sparkles, ClipboardList } from 'lucide-react'
 
 /**
  * Clickable action card that appears in chat when RFQ or Database query is triggered
@@ -16,6 +16,17 @@ export default function ActionCard({ actionType, onClick, isComplete = false }) 
       borderColor: 'border-accent-warm/30',
       iconBg: 'bg-accent-warm/20',
       iconColor: 'text-accent-warm'
+    },
+    rfp: {
+      icon: ClipboardList,
+      title: 'RFP Creation Requested',
+      subtitle: 'Click to view and fill the RFP form',
+      completeTitle: 'RFP Form Ready',
+      completeSubtitle: 'Click to view the RFP form',
+      bgColor: 'bg-purple-500/10',
+      borderColor: 'border-purple-500/30',
+      iconBg: 'bg-purple-500/20',
+      iconColor: 'text-purple-600'
     },
     vendors: {
       icon: Database,

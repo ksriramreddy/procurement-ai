@@ -27,13 +27,14 @@ export default function ChatArea() {
     updateChat,
     setVendors,
     setRfqData,
+    setRfpData,
     setPricingLoading,
     showDetailPanel
   } = useChatStore()
 
   const [sessionId, setSessionId] = useState(null)
   const messagesEndRef = useRef(null)
-  const requestCountersRef = useRef({ DATABASE_QUERY: 0, RFQ_REQUEST: 0, GENERAL_CHAT: 0 })
+  const requestCountersRef = useRef({ DATABASE_QUERY: 0, RFQ_REQUEST: 0, RFP_REQUEST: 0, GENERAL_CHAT: 0 })
   const shouldCallPricingRef = useRef(false)
 
   // Loading message variations based on request type
@@ -56,6 +57,15 @@ export default function ChatArea() {
         'I\'m expecting your details from the provided context...',
         'Preparing RFQ form for you...',
         'Let me gather the necessary information for your RFQ...'
+      ]
+      return messages[count % messages.length]
+    } else if (conversationType === 'RFP_REQUEST') {
+      const messages = [
+        'I will help you fill the RFP form...',
+        'Let me help you complete the RFP form...',
+        'Preparing RFP form with your details...',
+        'Gathering information for your RFP...',
+        'Setting up the RFP form for you...'
       ]
       return messages[count % messages.length]
     } else if (conversationType === 'GENERAL_CHAT') {
@@ -191,6 +201,19 @@ export default function ChatArea() {
           // Mark that we should call pricing agent when RFQ data arrives
           // Use a refs approach for more reliable flag passing
           shouldCallPricingRef.current = true
+        } else if (conversationType === 'RFP_REQUEST') {
+          console.log('   → Adding RFP Creation loading message')
+          addMessage(currentChatId, {
+            id: `action-${Date.now()}`,
+            role: 'assistant',
+            content: loadingMessage,
+            timestamp: new Date().toISOString(),
+            actionType: 'rfp',
+            actionComplete: false
+          })
+          if (!isDetailPanelOpen || detailPanelType !== 'rfp') {
+            showDetailPanel('rfp')
+          }
         } else if (conversationType === 'GENERAL_CHAT') {
           console.log('   → Adding General Chat loading message')
           addMessage(currentChatId, {
@@ -302,6 +325,37 @@ export default function ChatArea() {
             // Clear the flag
             shouldCallPricingRef.current = false
           }
+        }
+        break
+      }
+
+      case 'rfp_data': {
+        console.log('📋 RFP Data received')
+
+        // Auto-generate RFP ID if not provided
+        if (!parsedData.rfpId) {
+          const now = new Date()
+          const datePart = now.toISOString().slice(0, 10).replace(/-/g, '')
+          const randomPart = Math.random().toString(36).substring(2, 7).toUpperCase()
+          parsedData.rfpId = `RFP-${datePart}-${randomPart}`
+        }
+
+        setRfpData(currentChatId, parsedData)
+
+        // Mark the RFP action card as complete
+        const rfpActionMsg = currentChat?.messages?.find(m => m.actionType === 'rfp' && !m.actionComplete)
+        if (rfpActionMsg) {
+          updateMessage(currentChatId, rfpActionMsg.id, { actionComplete: true })
+        }
+
+        // Display message_to_customer as a chat message
+        if (parsedData.messageToCustomer) {
+          addMessage(currentChatId, {
+            id: `rfp-message-${Date.now()}`,
+            role: 'assistant',
+            content: parsedData.messageToCustomer,
+            timestamp: new Date().toISOString()
+          })
         }
         break
       }

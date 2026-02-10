@@ -148,6 +148,45 @@ export async function sendMessage(message, sessionId, assets = []) {
 }
 
 /**
+ * Manually extract known fields from a JSON-like string when JSON.parse fails.
+ * Handles LLM-generated responses where the "content" field contains raw
+ * newlines, unescaped quotes, backslashes, etc.
+ */
+function extractFieldsManually(str) {
+  // Extract "from" field (short value, no special chars expected)
+  const fromMatch = str.match(/"from"\s*:\s*"([^"]*)"/)
+  const from = fromMatch ? fromMatch[1] : null
+
+  // Extract "content" field using position-based slicing.
+  // Find "content" key, then the opening " of its value, then slice until
+  // the very last " before the final } — this captures the entire document
+  // regardless of what characters are inside it.
+  const contentKeyIdx = str.indexOf('"content"')
+  if (contentKeyIdx !== -1) {
+    const colonIdx = str.indexOf(':', contentKeyIdx + 9)
+    if (colonIdx !== -1) {
+      const openQuote = str.indexOf('"', colonIdx + 1)
+      const lastBrace = str.lastIndexOf('}')
+      const closeQuote = str.lastIndexOf('"', lastBrace)
+      if (openQuote !== -1 && closeQuote > openQuote) {
+        const content = str.substring(openQuote + 1, closeQuote)
+        console.log('🔧 extractFieldsManually: extracted from=' + from + ', content length=' + content.length)
+        return { from, content }
+      }
+    }
+  }
+
+  // Extract "price" field (for pricing agent fallback)
+  const priceMatch = str.match(/"price"\s*:\s*(\d+(?:\.\d+)?)/)
+  if (priceMatch) {
+    return { from, price: parseFloat(priceMatch[1]) }
+  }
+
+  // Nothing could be extracted — return raw string
+  return { response: str }
+}
+
+/**
  * Extract final business JSON from LYZR response
  */
 function extractFinalJSON(apiResponse) {
@@ -166,12 +205,14 @@ function extractFinalJSON(apiResponse) {
     }
   }
 
-  // Try to parse as JSON
+  // Try to parse as JSON directly (works for simple responses like pricing)
   try {
     return JSON.parse(responseStr)
   } catch {
-    // Return original response if not JSON
-    return { response: responseStr }
+    // JSON.parse failed — the response likely contains raw newlines or
+    // unescaped chars inside string values (common with LLM-generated
+    // RFQ documents). Fall back to position-based field extraction.
+    return extractFieldsManually(responseStr)
   }
 }
 
@@ -241,10 +282,10 @@ export async function generateRfqDocument(rfqFormData) {
   }
 
   const data = await response.json()
-  console.log('📝 RFQ generator raw response received')
-
-  // Parse the response - it's a JSON string with { from, content }
+  console.log('📝 RFQ generator raw response received:', data)
+  
   const parsed = extractFinalJSON(data)
+  console.log('📝 Parsed RFQ document response:', parsed)
   return parsed
 }
 
@@ -293,9 +334,10 @@ export async function callPricingSuggestionAgent(procurementDetails) {
     if (!response.ok) {
       throw new Error(`Pricing agent API failed: ${response.status}`)
     }
-
+    // console.log('💰 Pricing agent response received status:', await response.json())
     const data = await response.json()
-    console.log('💰 Pricing agent response received')
+
+    console.log('💰 Pricing agent response received',data)
 
     // Parse the response
     const parsed = extractFinalJSON(data)

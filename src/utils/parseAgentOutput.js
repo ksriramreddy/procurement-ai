@@ -208,6 +208,28 @@ export function parseExternalVendorResponse(data) {
 }
 
 /**
+ * Parse RFP input response
+ * Example: {"rfp_id":"","issued_by":"LYZR","project_title":"...","scope":"...","message_to_customer":"..."}
+ */
+export function parseRfpResponse(data) {
+  if (data?.project_title && data?.scope) {
+    return {
+      type: 'rfp_data',
+      rfpId: data.rfp_id || '',
+      issuedBy: data.issued_by || '',
+      projectTitle: data.project_title || '',
+      scope: data.scope || '',
+      mandatoryRequirements: data.mandatory_requirements || '',
+      submissionDeadline: data.submission_deadline || '',
+      evaluationBasis: data.evaluation_basis || '',
+      contactChannel: data.contact_channel || '',
+      messageToCustomer: data.message_to_customer || ''
+    }
+  }
+  return null
+}
+
+/**
  * Parse RFQ input generator response
  */
 export function parseRfqResponse(data) {
@@ -269,6 +291,7 @@ export function parseAgentOutput(data) {
     parseManagerResponse,
     parseGeneralChatResponse,
     parseDecisionMakerResponse,
+    parseRfpResponse,
     parseRfqResponse,
     parseExternalVendorResponse,
     parseInternalVendorResponse
