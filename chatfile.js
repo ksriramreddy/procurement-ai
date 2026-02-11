@@ -244,41 +244,110 @@
 // callAgent().catch(console.error);
 
 
+// const CHAT_API_URL = "https://agent-prod.studio.lyzr.ai/v3/inference/chat/";
+// const API_KEY = "sk-default-IjvgrZDhiW1wm1ydxpuKPEJrmcqxsx35";
+
+// const rfpInput = {
+//   rfp_id: "",
+//   issued_by: "",
+//   project_title: "Cybersecurity services for 200 employees and 800 systems",
+//   scope: "Provision of cyber security services covering 200 employees and 800 systems.",
+//   mandatory_requirements: [
+//     "Provide cyber security service for 200 employees and 800 systems"
+//   ],
+//   submission_deadline: "0000-01-01T00:00:00Z",
+//   evaluation_basis: "",
+//   contact_channel: "",
+//   message_to_customer:
+//     "Please provide RFP ID, issuing organization, desired services and scope details, service-levels, mandatory certifications, evaluation criteria, submission deadline, and contact for queries/submission."
+// };
+
+// const payload = {
+//   user_id: "sriram@lyzr.ai",
+//   agent_id: "698b5e2c6aa3f8e8896cc8d5",
+//   session_id: "698b5e2c6aa3f8e8896cc8d5-1nvsjxqc0of",
+
+//   message: "Convert the following RFP input into a structured understanding.",
+
+//   messages: [
+//     {
+//       role: "user",
+//       content: JSON.stringify(rfpInput, null, 2) // ✅ MUST be string
+//     }
+//   ]
+// };
+
+// async function callLyzrAgent() {
+//   try {
+//     const response = await fetch(CHAT_API_URL, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         "x-api-key": API_KEY
+//       },
+//       body: JSON.stringify(payload)
+//     });
+
+//     const data = await response.json();
+
+//     if (!response.ok) {
+//       console.error("❌ API Error:", data);
+//       return;
+//     }
+
+//     console.log("✅ Agent Response:");
+//     console.log(JSON.stringify(data, null, 2));
+
+//   } catch (error) {
+//     console.error("❌ Network Error:", error);
+//   }
+// }
+
+// callLyzrAgent();
+
+
 const CHAT_API_URL = "https://agent-prod.studio.lyzr.ai/v3/inference/chat/";
 const API_KEY = "sk-default-IjvgrZDhiW1wm1ydxpuKPEJrmcqxsx35";
 
-const rfpInput = {
-  rfp_id: "",
-  issued_by: "",
-  project_title: "Cybersecurity services for 200 employees and 800 systems",
-  scope: "Provision of cyber security services covering 200 employees and 800 systems.",
-  mandatory_requirements: [
-    "Provide cyber security service for 200 employees and 800 systems"
-  ],
-  submission_deadline: "0000-01-01T00:00:00Z",
-  evaluation_basis: "",
-  contact_channel: "",
-  message_to_customer:
-    "Please provide RFP ID, issuing organization, desired services and scope details, service-levels, mandatory certifications, evaluation criteria, submission deadline, and contact for queries/submission."
+const contractInput = {
+  parties: {
+    vendor_name: "SecureShield Technologies Pvt Ltd",
+    customer_name: "BrightFuture Enterprises Ltd"
+  },
+  scope: "Comprehensive cybersecurity monitoring and incident response services for 200 employees and 800 systems, including 24/7 monitoring, threat detection, vulnerability scanning, and monthly security reporting",
+  fees: {
+    amount: 150000,
+    currency: "USD",
+    payment_terms: "Quarterly in advance, Net 30 days from invoice date"
+  },
+  term: {
+    start_date: "2024-01-01",
+    end_date: "2024-12-31"
+  },
+  confidentiality: true,
+  liability_cap: 150000,
+  governing_law: "India",
+  message: "Contract form successfully populated with provided cybersecurity service agreement details. Please review and confirm the information."
 };
 
 const payload = {
   user_id: "sriram@lyzr.ai",
-  agent_id: "698b5e2c6aa3f8e8896cc8d5",
-  session_id: "698b5e2c6aa3f8e8896cc8d5-1nvsjxqc0of",
-
-  message: "Convert the following RFP input into a structured understanding.",
-
+  agent_id: "698c2ac6f0601df65d51cb77",
+  session_id: "698c2ac6f0601df65d51cb77-d8lktpm4npv",
+  message: "Please validate and confirm the contract details below.",
   messages: [
     {
       role: "user",
-      content: JSON.stringify(rfpInput, null, 2) // ✅ MUST be string
+      content: JSON.stringify(contractInput, null, 2) // must be string
     }
   ]
 };
 
 async function callLyzrAgent() {
   try {
+    console.log("🚀 Sending contract data to Lyzr agent...");
+    console.log("➡️ Payload:", JSON.stringify(payload, null, 2));
+
     const response = await fetch(CHAT_API_URL, {
       method: "POST",
       headers: {

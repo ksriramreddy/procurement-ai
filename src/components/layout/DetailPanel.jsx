@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Download, ArrowLeft, CheckCircle } from 'lucide-react'
+import { X, Download, ArrowLeft, CheckCircle, FileText, ClipboardList, Scale } from 'lucide-react'
 import { useChatStore } from '../../store/chatStore'
 import { callPricingSuggestionAgent } from '../../services/api'
 import Button from '../ui/Button'
@@ -140,6 +140,14 @@ export default function DetailPanel() {
     return null
   }
 
+  const isFormPanel = detailPanelType === 'rfq' || detailPanelType === 'rfp' || detailPanelType === 'contract'
+
+  const formTabs = [
+    { id: 'rfq', label: 'RFQ', icon: FileText },
+    { id: 'rfp', label: 'RFP', icon: ClipboardList },
+    { id: 'contract', label: 'Contract', icon: Scale }
+  ]
+
   const showBackButton = selectedVendor || detailPanelType === 'vendor-details' || detailPanelType === 'rfq-preview' || detailPanelType === 'rfp-preview'
 
   const handleBack = () => {
@@ -217,6 +225,35 @@ export default function DetailPanel() {
           </button>
         </div>
       </div>
+
+      {/* Form Switcher Tabs */}
+      {isFormPanel && (
+        <div className="px-4 py-2 border-b border-lyzr-cream bg-lyzr-light-1/50">
+          <div className="flex gap-1 bg-lyzr-light-2 rounded-lg p-1">
+            {formTabs.map((tab) => {
+              const TabIcon = tab.icon
+              const isActive = detailPanelType === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => showDetailPanel(tab.id)}
+                  className={`
+                    flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium
+                    transition-all duration-200
+                    ${isActive
+                      ? 'bg-white text-lyzr-congo shadow-sm'
+                      : 'text-lyzr-mid-4 hover:text-lyzr-congo hover:bg-white/50'
+                    }
+                  `}
+                >
+                  <TabIcon className="w-3.5 h-3.5" />
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
