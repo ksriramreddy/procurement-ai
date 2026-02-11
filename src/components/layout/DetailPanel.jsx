@@ -115,6 +115,8 @@ export default function DetailPanel() {
         return 'RFQ Document'
       case 'rfp-preview':
         return 'RFP Document'
+      case 'contract-preview':
+        return 'Contract Document'
       default:
         return 'Details'
     }
@@ -134,7 +136,7 @@ export default function DetailPanel() {
     if (detailPanelType === 'contract') {
       return 'Details will be auto filled from conversations'
     }
-    if (detailPanelType === 'rfq-preview' || detailPanelType === 'rfp-preview') {
+    if (detailPanelType === 'rfq-preview' || detailPanelType === 'rfp-preview' || detailPanelType === 'contract-preview') {
       return 'Review and edit before sending'
     }
     return null
@@ -148,13 +150,15 @@ export default function DetailPanel() {
     { id: 'contract', label: 'Contract', icon: Scale }
   ]
 
-  const showBackButton = selectedVendor || detailPanelType === 'vendor-details' || detailPanelType === 'rfq-preview' || detailPanelType === 'rfp-preview'
+  const showBackButton = selectedVendor || detailPanelType === 'vendor-details' || detailPanelType === 'rfq-preview' || detailPanelType === 'rfp-preview' || detailPanelType === 'contract-preview'
 
   const handleBack = () => {
     if (detailPanelType === 'rfq-preview') {
       handleBackToRfqForm()
     } else if (detailPanelType === 'rfp-preview') {
       showDetailPanel('rfp')
+    } else if (detailPanelType === 'contract-preview') {
+      showDetailPanel('contract')
     } else {
       handleBackFromVendorDetails()
     }
@@ -351,6 +355,19 @@ export default function DetailPanel() {
               className="h-full"
             >
               <RFQPdfPreview rfqDocument={currentChat?.rfpDocument} documentType="RFP" />
+            </motion.div>
+          )}
+
+          {detailPanelType === 'contract-preview' && (
+            <motion.div
+              key="contract-preview"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              className="h-full"
+            >
+              <RFQPdfPreview rfqDocument={currentChat?.contractDocument} documentType="Contract" />
             </motion.div>
           )}
         </AnimatePresence>

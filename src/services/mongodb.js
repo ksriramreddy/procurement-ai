@@ -5,8 +5,7 @@
  * For demo purposes, we'll simulate the MongoDB query logic.
  */
 
-const MONGODB_URI = import.meta.env.VITE_MONGODB_URI ||
-  'mongodb+srv://ksriramreddy9:ksriramreddy9@cluster0.v5pt4oo.mongodb.net/?appName=Cluster0'
+const MONGODB_URI = import.meta.env.VITE_MONGODB_URI
 
 // Mock vendor data for demonstration (based on the provided schema)
 const MOCK_VENDORS = [

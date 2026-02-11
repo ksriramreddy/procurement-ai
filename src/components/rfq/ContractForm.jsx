@@ -2,21 +2,22 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users,
-  Target,
   DollarSign,
-  Calendar,
   Shield,
   Scale,
-  Hash,
   ChevronDown,
   ChevronUp,
   CheckCircle,
-  Info
+  Info,
+  Loader,
+  Sparkles
 } from 'lucide-react'
 import Input, { Textarea } from '../ui/Input'
 import Badge from '../ui/Badge'
 import Card from '../ui/Card'
+import Button from '../ui/Button'
 import { useChatStore } from '../../store/chatStore'
+import { generateContractDocument } from '../../services/api'
 
 const SECTIONS = [
   {
@@ -40,7 +41,9 @@ const SECTIONS = [
 ]
 
 export default function ContractForm({ contractData }) {
-  const { currentChatId } = useChatStore()
+  const { currentChatId, setContractDocument, addMessage } = useChatStore()
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generateError, setGenerateError] = useState(null)
 
   const [formData, setFormData] = useState({
     vendor_name: '',
@@ -122,6 +125,43 @@ export default function ContractForm({ contractData }) {
   const isFieldFilled = (field) => {
     const val = formData[field]
     return typeof val === 'string' ? val.trim() : val != null
+  }
+
+  const handleGenerateContract = async () => {
+    setIsGenerating(true)
+    setGenerateError(null)
+    try {
+      const result = await generateContractDocument(formData)
+      const docContent = result?.content
+      if (docContent) {
+        setContractDocument(currentChatId, docContent)
+
+        addMessage(currentChatId, {
+          id: `contract-preview-${Date.now()}`,
+          role: 'assistant',
+          content: 'Contract document has been generated. Please review it in the preview panel.',
+          timestamp: new Date().toISOString(),
+          actionType: 'contract-preview',
+          actionComplete: true
+        })
+
+        if (result.message) {
+          addMessage(currentChatId, {
+            id: `agent-msg-${Date.now()}`,
+            role: 'assistant',
+            content: result.message,
+            timestamp: new Date().toISOString()
+          })
+        }
+      } else {
+        setGenerateError('No document content received from the agent.')
+      }
+    } catch (err) {
+      console.error('Failed to generate contract document:', err)
+      setGenerateError('Failed to generate contract document. Please try again.')
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   return (
@@ -348,6 +388,42 @@ export default function ContractForm({ contractData }) {
           />
         </div>
       </div>
+
+      {/* Generate Error */}
+      {generateError && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-3 bg-accent-error/10 border border-accent-error/20 rounded-lg text-xs text-accent-error"
+        >
+          {generateError}
+        </motion.div>
+      )}
+
+      {/* Generate Contract Document Button */}
+      <Button
+        variant="primary"
+        className="w-full"
+        onClick={handleGenerateContract}
+        disabled={getOverallCompletion() < 100 || isGenerating}
+      >
+        {isGenerating ? (
+          <>
+            <Loader className="w-4 h-4 animate-spin" />
+            Generating Contract...
+          </>
+        ) : (
+          <>
+            <Sparkles className="w-4 h-4" />
+            Create Contract Document
+          </>
+        )}
+      </Button>
+      {getOverallCompletion() < 100 && (
+        <p className="text-xs text-lyzr-mid-4 text-center -mt-2">
+          Complete all fields to generate the contract document
+        </p>
+      )}
     </div>
   )
 }

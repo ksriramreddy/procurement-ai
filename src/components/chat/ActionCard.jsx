@@ -93,6 +93,28 @@ export default function ActionCard({ actionType, onClick, isComplete = false }) 
       borderColor: 'border-accent-success/30',
       iconBg: 'bg-accent-success/20',
       iconColor: 'text-accent-success'
+    },
+    'contract-preview': {
+      icon: Sparkles,
+      title: 'Contract Document Generated',
+      subtitle: 'Click to review the generated contract document',
+      completeTitle: 'Contract Document Ready',
+      completeSubtitle: 'Click to review and send',
+      bgColor: 'bg-amber-500/10',
+      borderColor: 'border-amber-500/30',
+      iconBg: 'bg-amber-500/20',
+      iconColor: 'text-amber-600'
+    },
+    'contract-sent': {
+      icon: Send,
+      title: 'Contract Submitted',
+      subtitle: 'Your contract has been sent to vendors',
+      completeTitle: 'Contract Submitted',
+      completeSubtitle: 'Your contract has been sent to vendors',
+      bgColor: 'bg-accent-success/10',
+      borderColor: 'border-accent-success/30',
+      iconBg: 'bg-accent-success/20',
+      iconColor: 'text-accent-success'
     }
   }
 
@@ -100,7 +122,7 @@ export default function ActionCard({ actionType, onClick, isComplete = false }) 
   if (!config) return null
 
   const Icon = config.icon
-  const isClickable = actionType !== 'rfq-sent' && actionType !== 'rfp-sent'
+  const isClickable = actionType !== 'rfq-sent' && actionType !== 'rfp-sent' && actionType !== 'contract-sent'
 
   return (
     <motion.button

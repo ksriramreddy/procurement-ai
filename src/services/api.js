@@ -6,9 +6,9 @@ const ASSET_UPLOAD_URL = 'https://agent-prod.studio.lyzr.ai/v3/assets/upload'
  */
 function getConfig() {
   return {
-    apiKey: import.meta.env.VITE_LYZR_API_KEY || 'sk-default-IjvgrZDhiW1wm1ydxpuKPEJrmcqxsx35',
-    userId: import.meta.env.VITE_LYZR_USER_ID || 'sriram@lyzr.ai',
-    agentId: import.meta.env.VITE_LYZR_AGENT_ID || '698468a43107974e70311aaf'
+    apiKey: import.meta.env.VITE_LYZR_API_KEY,
+    userId: import.meta.env.VITE_LYZR_USER_ID,
+    agentId: import.meta.env.VITE_LYZR_AGENT_ID
   }
 }
 
@@ -255,7 +255,7 @@ export function getApiConfig() {
  */
 export async function generateRfqDocument(rfqFormData) {
   const config = getConfig()
-  const RFQ_AGENT_ID = '698311d86738a8c0ed88d471'
+  const RFQ_AGENT_ID = import.meta.env.VITE_LYZR_RFQ_AGENT_ID
   const sessionId = `${RFQ_AGENT_ID}-${Date.now()}`
 
   const messagePayload = {
@@ -313,7 +313,7 @@ export async function generateRfqDocument(rfqFormData) {
  */
 export async function generateRfpDocument(rfpFormData) {
   const config = getConfig()
-  const RFP_AGENT_ID = '698b5e2c6aa3f8e8896cc8d5'
+  const RFP_AGENT_ID = import.meta.env.VITE_LYZR_RFP_AGENT_ID
   const sessionId = `${RFP_AGENT_ID}-${Date.now()}`
 
   const rfpInput = {
@@ -368,13 +368,91 @@ export async function generateRfpDocument(rfpFormData) {
 }
 
 /**
+ * Generate Contract document by calling the contract document generator agent
+ * @param {object} contractFormData - The contract form data
+ * @returns {Promise<object>} - { from, content, message } where content is the HTML contract document
+ */
+export async function generateContractDocument(contractFormData) {
+  const config = getConfig()
+  const CONTRACT_AGENT_ID = import.meta.env.VITE_LYZR_CONTRACT_AGENT_ID
+  const sessionId = `${CONTRACT_AGENT_ID}-${Date.now()}`
+
+  const contractInput = {
+    parties: {
+      vendor_name: contractFormData.vendor_name || '',
+      customer_name: contractFormData.customer_name || ''
+    },
+    scope: contractFormData.scope || '',
+    fees: {
+      amount: contractFormData.fee_amount ? Number(contractFormData.fee_amount) : 0,
+      currency: contractFormData.fee_currency || 'USD',
+      payment_terms: contractFormData.payment_terms || ''
+    },
+    term: {
+      start_date: contractFormData.start_date || '',
+      end_date: contractFormData.end_date || ''
+    },
+    confidentiality: contractFormData.confidentiality ?? true,
+    liability_cap: contractFormData.liability_cap ? Number(contractFormData.liability_cap) : 0,
+    governing_law: contractFormData.governing_law || ''
+  }
+
+  const requestBody = {
+    user_id: config.userId,
+    agent_id: CONTRACT_AGENT_ID,
+    session_id: sessionId,
+    message: 'Please validate and confirm the contract details below.',
+    messages: [
+      {
+        role: 'user',
+        content: JSON.stringify(contractInput, null, 2)
+      }
+    ]
+  }
+
+  console.log('📋 Generating Contract document...')
+  console.log('Agent ID:', CONTRACT_AGENT_ID)
+  console.log('Payload:', JSON.stringify(contractInput, null, 2))
+
+  const response = await fetch(CHAT_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': config.apiKey
+    },
+    body: JSON.stringify(requestBody)
+  })
+
+  if (!response.ok) {
+    throw new Error(`Contract generator API failed: ${response.status}`)
+  }
+
+  const data = await response.json()
+  console.log('📋 Contract generator raw response received:', data)
+
+  const parsed = extractFinalJSON(data)
+
+  // Normalize: the agent sometimes returns "content: :" instead of "content"
+  if (parsed && !parsed.content) {
+    const contentKey = Object.keys(parsed).find(k => k.startsWith('content'))
+    if (contentKey && contentKey !== 'content') {
+      parsed.content = parsed[contentKey]
+      delete parsed[contentKey]
+    }
+  }
+
+  console.log('📋 Parsed Contract document response:', parsed)
+  return parsed
+}
+
+/**
  * Call pricing suggestion agent to get AI-suggested pricing for procurement
  * @param {object} procurementDetails - The procurement details (quantity, type, etc.)
  * @returns {Promise<object>} - { from: 'ai_price_suggestion', price: <number> }
  */
 export async function callPricingSuggestionAgent(procurementDetails) {
   const config = getConfig()
-  const PRICING_AGENT_ID = '6985810b0ee88347863f06fa'
+  const PRICING_AGENT_ID = import.meta.env.VITE_LYZR_PRICING_AGENT_ID
   const sessionId = `${PRICING_AGENT_ID}-pricing-${Date.now()}`
 
   const messagePayload = {
@@ -434,7 +512,7 @@ export async function callPricingSuggestionAgent(procurementDetails) {
  */
 export async function callVendorAnalysisAgent(vendorInfo) {
   const config = getConfig()
-  const VENDOR_ANALYSIS_AGENT_ID = '69859edfe17e33c11eed1af8'
+  const VENDOR_ANALYSIS_AGENT_ID = import.meta.env.VITE_LYZR_VENDOR_ANALYSIS_AGENT_ID
   const sessionId = `${VENDOR_ANALYSIS_AGENT_ID}-analysis-${Date.now()}`
 
   const messagePayload = {
