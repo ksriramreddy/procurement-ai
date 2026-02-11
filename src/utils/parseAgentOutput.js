@@ -230,6 +230,30 @@ export function parseRfpResponse(data) {
 }
 
 /**
+ * Parse contract input response
+ * Example: {"parties":{"vendor_name":"...","customer_name":"..."},"scope":"...","fees":{...},"term":{...},...}
+ */
+export function parseContractResponse(data) {
+  if (data?.parties && data?.scope && data?.fees) {
+    return {
+      type: 'contract_data',
+      vendorName: data.parties?.vendor_name || '',
+      customerName: data.parties?.customer_name || '',
+      scope: data.scope || '',
+      feeAmount: data.fees?.amount != null ? String(data.fees.amount) : '',
+      feeCurrency: data.fees?.currency || 'USD',
+      paymentTerms: data.fees?.payment_terms || '',
+      startDate: data.term?.start_date || '',
+      endDate: data.term?.end_date || '',
+      confidentiality: data.confidentiality ?? true,
+      liabilityCap: data.liability_cap != null ? String(data.liability_cap) : '',
+      governingLaw: data.governing_law || ''
+    }
+  }
+  return null
+}
+
+/**
  * Parse RFQ input generator response
  */
 export function parseRfqResponse(data) {
@@ -291,6 +315,7 @@ export function parseAgentOutput(data) {
     parseManagerResponse,
     parseGeneralChatResponse,
     parseDecisionMakerResponse,
+    parseContractResponse,
     parseRfpResponse,
     parseRfqResponse,
     parseExternalVendorResponse,

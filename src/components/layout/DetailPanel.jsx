@@ -8,6 +8,7 @@ import VendorTable from '../vendors/VendorTable'
 import VendorDetails from '../vendors/VendorDetails'
 import RFQForm from '../rfq/RFQForm'
 import RFPForm from '../rfq/RFPForm'
+import ContractForm from '../rfq/ContractForm'
 import RFQPdfPreview from '../rfq/RFQPdfPreview'
 
 export default function DetailPanel() {
@@ -108,6 +109,8 @@ export default function DetailPanel() {
         return 'New RFQ Request'
       case 'rfp':
         return 'New RFP Request'
+      case 'contract':
+        return 'New Contract'
       case 'rfq-preview':
         return 'RFQ Document'
       case 'rfp-preview':
@@ -126,6 +129,9 @@ export default function DetailPanel() {
       return 'Details will be auto filled from conversations or file uploads'
     }
     if (detailPanelType === 'rfp') {
+      return 'Details will be auto filled from conversations'
+    }
+    if (detailPanelType === 'contract') {
       return 'Details will be auto filled from conversations'
     }
     if (detailPanelType === 'rfq-preview' || detailPanelType === 'rfp-preview') {
@@ -269,6 +275,19 @@ export default function DetailPanel() {
               className="h-full"
             >
               <RFPForm rfpData={currentChat?.rfpData} />
+            </motion.div>
+          )}
+
+          {detailPanelType === 'contract' && (
+            <motion.div
+              key="contract"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              className="h-full"
+            >
+              <ContractForm contractData={currentChat?.contractData} />
             </motion.div>
           )}
 

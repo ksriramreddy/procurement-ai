@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { FileText, Database, ChevronRight, CheckCircle2, Send, Sparkles, ClipboardList } from 'lucide-react'
+import { FileText, Database, ChevronRight, CheckCircle2, Send, Sparkles, ClipboardList, Scale } from 'lucide-react'
 
 /**
  * Clickable action card that appears in chat when RFQ or Database query is triggered
@@ -27,6 +27,17 @@ export default function ActionCard({ actionType, onClick, isComplete = false }) 
       borderColor: 'border-purple-500/30',
       iconBg: 'bg-purple-500/20',
       iconColor: 'text-purple-600'
+    },
+    contract: {
+      icon: Scale,
+      title: 'Contract Creation Requested',
+      subtitle: 'Click to view and fill the contract form',
+      completeTitle: 'Contract Form Ready',
+      completeSubtitle: 'Click to view the contract form',
+      bgColor: 'bg-amber-500/10',
+      borderColor: 'border-amber-500/30',
+      iconBg: 'bg-amber-500/20',
+      iconColor: 'text-amber-600'
     },
     vendors: {
       icon: Database,

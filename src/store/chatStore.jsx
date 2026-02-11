@@ -34,6 +34,7 @@ const ACTIONS = {
   SET_VENDORS: 'SET_VENDORS',
   SET_RFQ_DATA: 'SET_RFQ_DATA',
   SET_RFP_DATA: 'SET_RFP_DATA',
+  SET_CONTRACT_DATA: 'SET_CONTRACT_DATA',
   SET_PRICING_LOADING: 'SET_PRICING_LOADING',
   SHOW_DETAIL_PANEL: 'SHOW_DETAIL_PANEL',
   HIDE_DETAIL_PANEL: 'HIDE_DETAIL_PANEL',
@@ -61,6 +62,7 @@ function chatReducer(state, action) {
         externalVendors: [],
         rfqData: null,
         rfpData: null,
+        contractData: null,
         rfqDocument: null,
         rfpDocument: null,
         isPricingLoading: false,
@@ -82,10 +84,11 @@ function chatReducer(state, action) {
       return {
         ...state,
         currentChatId: action.payload,
-        isDetailPanelOpen: chat?.conversationType === 'DATABASE_QUERY' || chat?.conversationType === 'RFQ_REQUEST' || chat?.conversationType === 'RFP_REQUEST',
+        isDetailPanelOpen: chat?.conversationType === 'DATABASE_QUERY' || chat?.conversationType === 'RFQ_REQUEST' || chat?.conversationType === 'RFP_REQUEST' || chat?.conversationType === 'CONTRACT_REQUEST',
         detailPanelType: chat?.conversationType === 'DATABASE_QUERY' ? 'vendors' :
                         chat?.conversationType === 'RFQ_REQUEST' ? 'rfq' :
-                        chat?.conversationType === 'RFP_REQUEST' ? 'rfp' : null
+                        chat?.conversationType === 'RFP_REQUEST' ? 'rfp' :
+                        chat?.conversationType === 'CONTRACT_REQUEST' ? 'contract' : null
       }
 
     case ACTIONS.ADD_MESSAGE: {
@@ -201,6 +204,20 @@ function chatReducer(state, action) {
         chats: {
           ...state.chats,
           [chatId]: { ...existingChat, rfpData }
+        }
+      }
+    }
+
+    case ACTIONS.SET_CONTRACT_DATA: {
+      const { chatId, contractData } = action.payload
+      const existingChat = state.chats[chatId]
+      if (!existingChat) return state
+
+      return {
+        ...state,
+        chats: {
+          ...state.chats,
+          [chatId]: { ...existingChat, contractData }
         }
       }
     }
@@ -393,6 +410,10 @@ export function ChatProvider({ children }) {
     dispatch({ type: ACTIONS.SET_RFP_DATA, payload: { chatId, rfpData } })
   }, [])
 
+  const setContractData = useCallback((chatId, contractData) => {
+    dispatch({ type: ACTIONS.SET_CONTRACT_DATA, payload: { chatId, contractData } })
+  }, [])
+
   const setPricingLoading = useCallback((chatId, isPricingLoading) => {
     dispatch({ type: ACTIONS.SET_PRICING_LOADING, payload: { chatId, isPricingLoading } })
   }, [])
@@ -447,6 +468,7 @@ export function ChatProvider({ children }) {
     setVendors,
     setRfqData,
     setRfpData,
+    setContractData,
     setPricingLoading,
     showDetailPanel,
     hideDetailPanel,

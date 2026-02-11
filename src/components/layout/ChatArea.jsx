@@ -28,13 +28,14 @@ export default function ChatArea() {
     setVendors,
     setRfqData,
     setRfpData,
+    setContractData,
     setPricingLoading,
     showDetailPanel
   } = useChatStore()
 
   const [sessionId, setSessionId] = useState(null)
   const messagesEndRef = useRef(null)
-  const requestCountersRef = useRef({ DATABASE_QUERY: 0, RFQ_REQUEST: 0, RFP_REQUEST: 0, GENERAL_CHAT: 0 })
+  const requestCountersRef = useRef({ DATABASE_QUERY: 0, RFQ_REQUEST: 0, RFP_REQUEST: 0, CONTRACT_REQUEST: 0, GENERAL_CHAT: 0 })
   const shouldCallPricingRef = useRef(false)
 
   // Loading message variations based on request type
@@ -66,6 +67,15 @@ export default function ChatArea() {
         'Preparing RFP form with your details...',
         'Gathering information for your RFP...',
         'Setting up the RFP form for you...'
+      ]
+      return messages[count % messages.length]
+    } else if (conversationType === 'CONTRACT_REQUEST') {
+      const messages = [
+        'I will help you fill the contract form...',
+        'Let me prepare the contract details...',
+        'Setting up the contract form for you...',
+        'Gathering contract information...',
+        'Preparing contract form with your details...'
       ]
       return messages[count % messages.length]
     } else if (conversationType === 'GENERAL_CHAT') {
@@ -214,6 +224,19 @@ export default function ChatArea() {
           if (!isDetailPanelOpen || detailPanelType !== 'rfp') {
             showDetailPanel('rfp')
           }
+        } else if (conversationType === 'CONTRACT_REQUEST') {
+          console.log('   → Adding Contract Creation loading message')
+          addMessage(currentChatId, {
+            id: `action-${Date.now()}`,
+            role: 'assistant',
+            content: loadingMessage,
+            timestamp: new Date().toISOString(),
+            actionType: 'contract',
+            actionComplete: false
+          })
+          if (!isDetailPanelOpen || detailPanelType !== 'contract') {
+            showDetailPanel('contract')
+          }
         } else if (conversationType === 'GENERAL_CHAT') {
           console.log('   → Adding General Chat loading message')
           addMessage(currentChatId, {
@@ -357,6 +380,18 @@ export default function ChatArea() {
             content: rfpMsg,
             timestamp: new Date().toISOString()
           })
+        }
+        break
+      }
+
+      case 'contract_data': {
+        console.log('📋 Contract Data received')
+        setContractData(currentChatId, parsedData)
+
+        // Mark the contract action card as complete
+        const contractActionMsg = currentChat?.messages?.find(m => m.actionType === 'contract' && !m.actionComplete)
+        if (contractActionMsg) {
+          updateMessage(currentChatId, contractActionMsg.id, { actionComplete: true })
         }
         break
       }
