@@ -5,7 +5,7 @@ import Button from '../ui/Button'
 import { useChatStore } from '../../store/chatStore'
 import { PDFDocument, rgb } from 'pdf-lib'
 
-export default function RFQPdfPreview({ rfqDocument }) {
+export default function RFQPdfPreview({ rfqDocument, documentType = 'RFQ' }) {
   const { currentChat, currentChatId, addMessage, showDetailPanel } = useChatStore()
   
   const [pdfUrl, setPdfUrl] = useState(null)
@@ -35,7 +35,7 @@ export default function RFQPdfPreview({ rfqDocument }) {
       let currentPageIndex = 0
       let currentPage = pages[currentPageIndex]
 
-      currentPage.drawText('RFQ DOCUMENT', {
+      currentPage.drawText(`${documentType} DOCUMENT`, {
         x: margin,
         y: 750,
         size: 16,
@@ -139,7 +139,7 @@ export default function RFQPdfPreview({ rfqDocument }) {
     if (pdfUrl) {
       const link = document.createElement('a')
       link.href = pdfUrl
-      link.download = `RFQ_${new Date().toISOString().split('T')[0]}.pdf`
+      link.download = `${documentType}_${new Date().toISOString().split('T')[0]}.pdf`
       link.click()
     }
   }
@@ -152,9 +152,9 @@ export default function RFQPdfPreview({ rfqDocument }) {
     addMessage(currentChatId, {
       id: `rfq-sent-${Date.now()}`,
       role: 'assistant',
-      content: 'Your RFQ request has been submitted successfully.',
+      content: `Your ${documentType} request has been submitted successfully.`,
       timestamp: new Date().toISOString(),
-      actionType: 'rfq-sent',
+      actionType: documentType === 'RFP' ? 'rfp-sent' : 'rfq-sent',
       actionComplete: true
     })
 
@@ -194,10 +194,10 @@ export default function RFQPdfPreview({ rfqDocument }) {
                 </svg>
               </div>
               <h3 className="font-playfair text-lg font-semibold text-lyzr-congo mb-2">
-                RFQ Request Submitted
+                {documentType} Request Submitted
               </h3>
               <p className="text-sm text-lyzr-mid-4">
-                Your RFQ has been sent to the selected vendors. You will be notified when responses are received.
+                Your {documentType} has been sent to the selected vendors. You will be notified when responses are received.
               </p>
             </motion.div>
           </motion.div>
@@ -210,7 +210,7 @@ export default function RFQPdfPreview({ rfqDocument }) {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-lyzr-mid-4" />
-            <span className="font-medium text-lyzr-congo">RFQ Document</span>
+            <span className="font-medium text-lyzr-congo">{documentType} Document</span>
           </div>
           <div className="flex items-center gap-2">
             {isEditing ? (
@@ -268,14 +268,14 @@ export default function RFQPdfPreview({ rfqDocument }) {
             animate={{ opacity: 1 }}
             className="space-y-2"
           >
-            <p className="text-xs text-lyzr-mid-4 font-medium">Edit RFQ Content</p>
+            <p className="text-xs text-lyzr-mid-4 font-medium">Edit {documentType} Content</p>
             <textarea
               value={editableContent}
               onChange={(e) => setEditableContent(e.target.value)}
               className="w-full h-[calc(100%-3rem)] min-h-[400px] px-4 py-3 bg-white border border-lyzr-cream
                 rounded-xl text-sm text-lyzr-black leading-relaxed font-mono resize-none
                 focus:outline-none focus:ring-2 focus:ring-lyzr-ferra/30 focus:border-lyzr-ferra"
-              placeholder="Edit your RFQ document here..."
+              placeholder={`Edit your ${documentType} document here...`}
             />
           </motion.div>
         ) : (
@@ -295,7 +295,7 @@ export default function RFQPdfPreview({ rfqDocument }) {
             ) : pdfUrl ? (
               <iframe
                 src={pdfUrl}
-                title="RFQ Document Preview"
+                title={`${documentType} Document Preview`}
                 className="w-full h-[500px] rounded-lg"
               />
             ) : (
@@ -328,7 +328,7 @@ export default function RFQPdfPreview({ rfqDocument }) {
           disabled={showSuccess || isSending || !pdfUrl}
         >
           <Send className="w-4 h-4" />
-          {isSending ? 'Sending...' : 'Send RFQ'}
+          {isSending ? 'Sending...' : `Send ${documentType}`}
         </Button>
       </div>
     </div>

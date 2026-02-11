@@ -39,6 +39,7 @@ const ACTIONS = {
   HIDE_DETAIL_PANEL: 'HIDE_DETAIL_PANEL',
   SET_SELECTED_VENDOR: 'SET_SELECTED_VENDOR',
   SET_RFQ_DOCUMENT: 'SET_RFQ_DOCUMENT',
+  SET_RFP_DOCUMENT: 'SET_RFP_DOCUMENT',
   SET_PENDING_CHAT_MESSAGE: 'SET_PENDING_CHAT_MESSAGE',
   DELETE_CHAT: 'DELETE_CHAT',
   UPDATE_CHAT_TITLE: 'UPDATE_CHAT_TITLE'
@@ -61,6 +62,7 @@ function chatReducer(state, action) {
         rfqData: null,
         rfpData: null,
         rfqDocument: null,
+        rfpDocument: null,
         isPricingLoading: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -248,6 +250,22 @@ function chatReducer(state, action) {
       }
     }
 
+    case ACTIONS.SET_RFP_DOCUMENT: {
+      const { chatId, rfpDocument } = action.payload
+      const existingChat = state.chats[chatId]
+      if (!existingChat) return state
+
+      return {
+        ...state,
+        chats: {
+          ...state.chats,
+          [chatId]: { ...existingChat, rfpDocument }
+        },
+        isDetailPanelOpen: true,
+        detailPanelType: 'rfp-preview'
+      }
+    }
+
     case ACTIONS.SET_SELECTED_VENDOR:
       return {
         ...state,
@@ -395,6 +413,10 @@ export function ChatProvider({ children }) {
     dispatch({ type: ACTIONS.SET_RFQ_DOCUMENT, payload: { chatId, rfqDocument } })
   }, [])
 
+  const setRfpDocument = useCallback((chatId, rfpDocument) => {
+    dispatch({ type: ACTIONS.SET_RFP_DOCUMENT, payload: { chatId, rfpDocument } })
+  }, [])
+
   const setPendingChatMessage = useCallback((message) => {
     dispatch({ type: ACTIONS.SET_PENDING_CHAT_MESSAGE, payload: message })
   }, [])
@@ -430,6 +452,7 @@ export function ChatProvider({ children }) {
     hideDetailPanel,
     setSelectedVendor,
     setRfqDocument,
+    setRfpDocument,
     setPendingChatMessage,
     deleteChat,
     updateChatTitle

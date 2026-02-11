@@ -110,6 +110,8 @@ export default function DetailPanel() {
         return 'New RFP Request'
       case 'rfq-preview':
         return 'RFQ Document'
+      case 'rfp-preview':
+        return 'RFP Document'
       default:
         return 'Details'
     }
@@ -126,17 +128,19 @@ export default function DetailPanel() {
     if (detailPanelType === 'rfp') {
       return 'Details will be auto filled from conversations'
     }
-    if (detailPanelType === 'rfq-preview') {
+    if (detailPanelType === 'rfq-preview' || detailPanelType === 'rfp-preview') {
       return 'Review and edit before sending'
     }
     return null
   }
 
-  const showBackButton = selectedVendor || detailPanelType === 'vendor-details' || detailPanelType === 'rfq-preview'
+  const showBackButton = selectedVendor || detailPanelType === 'vendor-details' || detailPanelType === 'rfq-preview' || detailPanelType === 'rfp-preview'
 
   const handleBack = () => {
     if (detailPanelType === 'rfq-preview') {
       handleBackToRfqForm()
+    } else if (detailPanelType === 'rfp-preview') {
+      showDetailPanel('rfp')
     } else {
       handleBackFromVendorDetails()
     }
@@ -278,6 +282,19 @@ export default function DetailPanel() {
               className="h-full"
             >
               <RFQPdfPreview rfqDocument={currentChat?.rfqDocument} />
+            </motion.div>
+          )}
+
+          {detailPanelType === 'rfp-preview' && (
+            <motion.div
+              key="rfp-preview"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              className="h-full"
+            >
+              <RFQPdfPreview rfqDocument={currentChat?.rfpDocument} documentType="RFP" />
             </motion.div>
           )}
         </AnimatePresence>

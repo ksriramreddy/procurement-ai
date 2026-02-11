@@ -202,43 +202,105 @@
 // callPricingSuggestionAgent().catch(console.error);
 
 
+// const API_KEY = "sk-default-IjvgrZDhiW1wm1ydxpuKPEJrmcqxsx35";
+// const CHAT_URL = "https://agent-prod.studio.lyzr.ai/v3/inference/chat/";
+
+// async function callAgent() {
+//   const response = await fetch(CHAT_URL, {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//       "x-api-key": API_KEY
+//     },
+//     body: JSON.stringify({
+//       user_id: "sriram@lyzr.ai",
+//       agent_id: "69859edfe17e33c11eed1af8",
+//       session_id: "69859edfe17e33c11eed1af8-mjw11vvhy",
+//       message: JSON.stringify({
+//         vendor_name: "Paladion (now Atos Paladion)",
+//         headquarters: "Bengaluru, India",
+//         website: "https://www.paladion.net/",
+//         description:
+//           "Managed detection and response (MDR), security operations (SOC), threat hunting and managed security services focused on enterprise customers.",
+//         services: [
+//           "Managed Detection and Response (MDR)",
+//           "Managed SOC / SOC-as-a-Service",
+//           "Threat Hunting",
+//           "Vulnerability Management",
+//           "Incident Response",
+//           "Cloud Security Monitoring"
+//         ],
+//         compliance_score: 85,
+//         compliance_rating: "A"
+//       })
+//     })
+//   });
+
+//   const data = await response.json();
+//   console.log("Agent Response:");
+//   console.log(JSON.stringify(data, null, 2));
+// }
+
+// callAgent().catch(console.error);
+
+
+const CHAT_API_URL = "https://agent-prod.studio.lyzr.ai/v3/inference/chat/";
 const API_KEY = "sk-default-IjvgrZDhiW1wm1ydxpuKPEJrmcqxsx35";
-const CHAT_URL = "https://agent-prod.studio.lyzr.ai/v3/inference/chat/";
 
-async function callAgent() {
-  const response = await fetch(CHAT_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": API_KEY
-    },
-    body: JSON.stringify({
-      user_id: "sriram@lyzr.ai",
-      agent_id: "69859edfe17e33c11eed1af8",
-      session_id: "69859edfe17e33c11eed1af8-mjw11vvhy",
-      message: JSON.stringify({
-        vendor_name: "Paladion (now Atos Paladion)",
-        headquarters: "Bengaluru, India",
-        website: "https://www.paladion.net/",
-        description:
-          "Managed detection and response (MDR), security operations (SOC), threat hunting and managed security services focused on enterprise customers.",
-        services: [
-          "Managed Detection and Response (MDR)",
-          "Managed SOC / SOC-as-a-Service",
-          "Threat Hunting",
-          "Vulnerability Management",
-          "Incident Response",
-          "Cloud Security Monitoring"
-        ],
-        compliance_score: 85,
-        compliance_rating: "A"
-      })
-    })
-  });
+const rfpInput = {
+  rfp_id: "",
+  issued_by: "",
+  project_title: "Cybersecurity services for 200 employees and 800 systems",
+  scope: "Provision of cyber security services covering 200 employees and 800 systems.",
+  mandatory_requirements: [
+    "Provide cyber security service for 200 employees and 800 systems"
+  ],
+  submission_deadline: "0000-01-01T00:00:00Z",
+  evaluation_basis: "",
+  contact_channel: "",
+  message_to_customer:
+    "Please provide RFP ID, issuing organization, desired services and scope details, service-levels, mandatory certifications, evaluation criteria, submission deadline, and contact for queries/submission."
+};
 
-  const data = await response.json();
-  console.log("Agent Response:");
-  console.log(JSON.stringify(data, null, 2));
+const payload = {
+  user_id: "sriram@lyzr.ai",
+  agent_id: "698b5e2c6aa3f8e8896cc8d5",
+  session_id: "698b5e2c6aa3f8e8896cc8d5-1nvsjxqc0of",
+
+  message: "Convert the following RFP input into a structured understanding.",
+
+  messages: [
+    {
+      role: "user",
+      content: JSON.stringify(rfpInput, null, 2) // ✅ MUST be string
+    }
+  ]
+};
+
+async function callLyzrAgent() {
+  try {
+    const response = await fetch(CHAT_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("❌ API Error:", data);
+      return;
+    }
+
+    console.log("✅ Agent Response:");
+    console.log(JSON.stringify(data, null, 2));
+
+  } catch (error) {
+    console.error("❌ Network Error:", error);
+  }
 }
 
-callAgent().catch(console.error);
+callLyzrAgent();

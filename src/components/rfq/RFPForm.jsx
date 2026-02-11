@@ -9,13 +9,17 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle,
+  AlertCircle,
   Info,
   ClipboardList,
-  Target
+  Target,
+  Sparkles
 } from 'lucide-react'
 import Input, { Textarea } from '../ui/Input'
+import Button from '../ui/Button'
 import Badge from '../ui/Badge'
 import Card from '../ui/Card'
+import { generateRfpDocument } from '../../services/api'
 import { useChatStore } from '../../store/chatStore'
 
 const SECTIONS = [
@@ -40,7 +44,7 @@ const SECTIONS = [
 ]
 
 export default function RFPForm({ rfpData }) {
-  const { currentChatId, setRfpData } = useChatStore()
+  const { currentChatId, setRfpData, setRfpDocument, addMessage } = useChatStore()
 
   const [formData, setFormData] = useState({
     rfp_id: '',
@@ -54,6 +58,8 @@ export default function RFPForm({ rfpData }) {
   })
 
   const [expandedSections, setExpandedSections] = useState(['project'])
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generateError, setGenerateError] = useState(null)
 
   // Update form when rfpData changes
   useEffect(() => {
@@ -105,10 +111,73 @@ export default function RFPForm({ rfpData }) {
     return Math.round((filledFields.length / allFields.length) * 100)
   }
 
+  const handleGenerateRfp = async (e) => {
+    e.preventDefault()
+    setIsGenerating(true)
+    setGenerateError(null)
+
+    try {
+      const result = await generateRfpDocument(formData)
+      console.log('📄 RFP document generated:', result)
+
+      // Extract content from the response
+      let rfpContent = ''
+      let rfpMessage = ''
+
+      if (result?.response?.content) {
+        rfpContent = result.response.content
+        rfpMessage = result.response.message || ''
+      } else if (result?.content) {
+        rfpContent = result.content
+        rfpMessage = result.message || ''
+      } else if (typeof result === 'string') {
+        try {
+          const parsed = JSON.parse(result)
+          rfpContent = parsed?.content || parsed?.response?.content || ''
+          rfpMessage = parsed?.message || ''
+        } catch {
+          rfpContent = result
+        }
+      }
+
+      if (rfpContent) {
+        // Store the generated RFP document in the chat store
+        setRfpDocument(currentChatId, rfpContent)
+
+        // Add a chat card for the generated RFP
+        addMessage(currentChatId, {
+          id: `rfp-generated-${Date.now()}`,
+          role: 'assistant',
+          content: 'RFP document has been generated. You can review and edit it before sending.',
+          timestamp: new Date().toISOString(),
+          actionType: 'rfp-preview',
+          actionComplete: true
+        })
+
+        // Display the agent's message in chat if present
+        if (rfpMessage) {
+          addMessage(currentChatId, {
+            id: `rfp-agent-message-${Date.now()}`,
+            role: 'assistant',
+            content: rfpMessage,
+            timestamp: new Date().toISOString()
+          })
+        }
+      } else {
+        setGenerateError('No content received from RFP generator')
+      }
+    } catch (error) {
+      console.error('Failed to generate RFP:', error)
+      setGenerateError('Failed to generate RFP document. Please try again.')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   const isFieldFilled = (field) => formData[field]?.trim()
 
   return (
-    <div className="p-4 space-y-4">
+    <form onSubmit={handleGenerateRfp} className="p-4 space-y-4">
       {/* RFP ID Banner */}
       {formData.rfp_id && (
         <motion.div
@@ -298,6 +367,36 @@ export default function RFPForm({ rfpData }) {
           />
         </div>
       </div>
-    </div>
+
+      {/* Error Message */}
+      {generateError && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-accent-error/10 border border-accent-error/20 rounded-lg px-4 py-3 flex items-center gap-2"
+        >
+          <AlertCircle className="w-4 h-4 text-accent-error flex-shrink-0" />
+          <p className="text-sm text-accent-error">{generateError}</p>
+        </motion.div>
+      )}
+
+      {/* Generate RFP Button */}
+      <Button
+        type="submit"
+        variant="primary"
+        className="w-full"
+        loading={isGenerating}
+        disabled={getOverallCompletion() < 100}
+      >
+        <Sparkles className="w-4 h-4" />
+        {isGenerating ? 'Generating RFP Document...' : 'Create RFP Document'}
+      </Button>
+
+      {getOverallCompletion() < 100 && (
+        <p className="text-xs text-center text-lyzr-mid-4">
+          Complete all fields to generate the RFP document
+        </p>
+      )}
+    </form>
   )
 }

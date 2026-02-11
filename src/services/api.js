@@ -157,21 +157,38 @@ function extractFieldsManually(str) {
   const fromMatch = str.match(/"from"\s*:\s*"([^"]*)"/)
   const from = fromMatch ? fromMatch[1] : null
 
+  // Extract "message" field first (short value, appears after content)
+  // We look for "message" key that comes after the long content
+  let message = null
+  const messageMatch = str.match(/"message"\s*:\s*"([^"]*)"/)
+  if (messageMatch) {
+    message = messageMatch[1]
+  }
+
   // Extract "content" field using position-based slicing.
   // Find "content" key, then the opening " of its value, then slice until
-  // the very last " before the final } — this captures the entire document
-  // regardless of what characters are inside it.
-  const contentKeyIdx = str.indexOf('"content"')
+  // the last " before "message" key or the final }.
+  const contentKeyIdx = str.indexOf('"content')
   if (contentKeyIdx !== -1) {
-    const colonIdx = str.indexOf(':', contentKeyIdx + 9)
+    const colonIdx = str.indexOf(':', contentKeyIdx + 8)
     if (colonIdx !== -1) {
       const openQuote = str.indexOf('"', colonIdx + 1)
-      const lastBrace = str.lastIndexOf('}')
-      const closeQuote = str.lastIndexOf('"', lastBrace)
+      // If there's a "message" field after content, find the boundary
+      const messageKeyIdx = str.indexOf('"message"', contentKeyIdx + 10)
+      let closeQuote
+      if (messageKeyIdx !== -1) {
+        // Close quote is the last " before the "message" key
+        closeQuote = str.lastIndexOf('"', messageKeyIdx - 1)
+      } else {
+        const lastBrace = str.lastIndexOf('}')
+        closeQuote = str.lastIndexOf('"', lastBrace)
+      }
       if (openQuote !== -1 && closeQuote > openQuote) {
         const content = str.substring(openQuote + 1, closeQuote)
         console.log('🔧 extractFieldsManually: extracted from=' + from + ', content length=' + content.length)
-        return { from, content }
+        const result = { from, content }
+        if (message) result.message = message
+        return result
       }
     }
   }
@@ -286,6 +303,67 @@ export async function generateRfqDocument(rfqFormData) {
   
   const parsed = extractFinalJSON(data)
   console.log('📝 Parsed RFQ document response:', parsed)
+  return parsed
+}
+
+/**
+ * Generate RFP document by calling the RFP document generator agent
+ * @param {object} rfpFormData - The RFP form data
+ * @returns {Promise<object>} - { from, content, message } where content is the full RFP document
+ */
+export async function generateRfpDocument(rfpFormData) {
+  const config = getConfig()
+  const RFP_AGENT_ID = '698b5e2c6aa3f8e8896cc8d5'
+  const sessionId = `${RFP_AGENT_ID}-${Date.now()}`
+
+  const rfpInput = {
+    rfp_id: rfpFormData.rfp_id || '',
+    issued_by: rfpFormData.issued_by || '',
+    project_title: rfpFormData.project_title || '',
+    scope: rfpFormData.scope || '',
+    mandatory_requirements: rfpFormData.mandatory_requirements
+      ? rfpFormData.mandatory_requirements.split('\n').filter(Boolean)
+      : [],
+    submission_deadline: rfpFormData.submission_deadline || '',
+    evaluation_basis: rfpFormData.evaluation_basis || '',
+    contact_channel: rfpFormData.contact_channel || ''
+  }
+
+  const requestBody = {
+    user_id: config.userId,
+    agent_id: RFP_AGENT_ID,
+    session_id: sessionId,
+    message: 'Convert the following RFP input into a structured understanding.',
+    messages: [
+      {
+        role: 'user',
+        content: JSON.stringify(rfpInput, null, 2)
+      }
+    ]
+  }
+
+  console.log('📄 Generating RFP document...')
+  console.log('Agent ID:', RFP_AGENT_ID)
+  console.log('Payload:', JSON.stringify(rfpInput, null, 2))
+
+  const response = await fetch(CHAT_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': config.apiKey
+    },
+    body: JSON.stringify(requestBody)
+  })
+
+  if (!response.ok) {
+    throw new Error(`RFP generator API failed: ${response.status}`)
+  }
+
+  const data = await response.json()
+  console.log('📄 RFP generator raw response received:', data)
+
+  const parsed = extractFinalJSON(data)
+  console.log('📄 Parsed RFP document response:', parsed)
   return parsed
 }
 

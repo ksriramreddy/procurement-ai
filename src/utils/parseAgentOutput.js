@@ -299,7 +299,13 @@ export function parseAgentOutput(data) {
 
   for (const parser of parsers) {
     const result = parser(data)
-    if (result) return result
+    if (result) {
+      // Carry forward "message" field from raw data if present
+      if (data.message && !result.message) {
+        result.message = data.message
+      }
+      return result
+    }
   }
 
   // Return raw data if no parser matched

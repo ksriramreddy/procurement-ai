@@ -348,12 +348,13 @@ export default function ChatArea() {
           updateMessage(currentChatId, rfpActionMsg.id, { actionComplete: true })
         }
 
-        // Display message_to_customer as a chat message
-        if (parsedData.messageToCustomer) {
+        // Display message_to_customer or message as a chat message
+        const rfpMsg = parsedData.messageToCustomer || parsedData.message
+        if (rfpMsg) {
           addMessage(currentChatId, {
             id: `rfp-message-${Date.now()}`,
             role: 'assistant',
-            content: parsedData.messageToCustomer,
+            content: rfpMsg,
             timestamp: new Date().toISOString()
           })
         }
@@ -374,6 +375,17 @@ export default function ChatArea() {
       default:
         console.log('❓ UNKNOWN OUTPUT TYPE:', parsedData.type)
         console.log('   Data:', JSON.stringify(parsedData, null, 2))
+    }
+
+    // Generic: display agent "message" field in chat (if present and not already handled)
+    if (parsedData.message && parsedData.type !== 'rfp_data') {
+      console.log('💬 Agent message:', parsedData.message)
+      addMessage(currentChatId, {
+        id: `agent-msg-${Date.now()}`,
+        role: 'assistant',
+        content: parsedData.message,
+        timestamp: new Date().toISOString()
+      })
     }
   }
 
