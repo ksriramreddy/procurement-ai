@@ -65,6 +65,17 @@ ehthumbs.db
 Desktop.ini
 
 # ===============================
+# Python
+# ===============================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
+*.egg-info/
+
+# ===============================
 # Node / ES module caches
 # ===============================
 .eslintcache
