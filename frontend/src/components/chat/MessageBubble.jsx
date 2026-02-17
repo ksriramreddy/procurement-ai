@@ -10,14 +10,34 @@ export default function MessageBubble({ message, onActionClick, onVendorClick })
   const isUser = message.role === 'user'
   const isError = message.error
   const isFileUpload = message.fileUpload
-  const isChart = !!message.chartData
   const { currentChatId, currentChat, updateMessage } = useChatStore()
 
-  console.log('[MessageBubble] 📨 Rendering message - role:', message.role, '| isChart:', isChart, '| hasChartData:', !!message.chartData)
-  if (isChart) {
-    console.log('[MessageBubble] Chart Message detected')
-    console.log('[MessageBubble] chartData:', JSON.stringify(message.chartData)?.substring(0, 300))
+  // Detect chart JSON embedded in text content and extract chartData
+  let effectiveChartData = message.chartData || null
+  let effectiveContent = message.content
+
+  if (!effectiveChartData && !isUser && typeof message.content === 'string' && message.content.trim().startsWith('{')) {
+    try {
+      // Try direct parse first, then with unescaped newlines/tabs
+      let jsonStr = message.content
+      let parsed
+      try {
+        parsed = JSON.parse(jsonStr)
+      } catch (_) {
+        // Content may have literal \n \t characters — unescape and retry
+        jsonStr = jsonStr.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"')
+        parsed = JSON.parse(jsonStr)
+      }
+      if (parsed?.chart_type && ['pie', 'bar', 'line', 'text'].includes(parsed.chart_type)) {
+        effectiveChartData = parsed
+        effectiveContent = ''
+      }
+    } catch (e) {
+      // Not JSON, render as normal text
+    }
   }
+
+  const isChart = !!effectiveChartData
 
   // Get file extension from filename
   const getFileExtension = (filename) => {
@@ -84,7 +104,7 @@ export default function MessageBubble({ message, onActionClick, onVendorClick })
 
             {/* File Upload Card */}
             {isChart ? (
-              <ChartCard chartData={message.chartData} onVendorClick={onVendorClick} />
+              <ChartCard chartData={effectiveChartData} onVendorClick={onVendorClick} />
             ) : isFileUpload && message.fileUpload ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -122,7 +142,7 @@ export default function MessageBubble({ message, onActionClick, onVendorClick })
               <>
                 {/* Message Text */}
                 <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                  {renderLinkedText(message.content, onVendorClick)}
+                  {renderLinkedText(effectiveContent, onVendorClick)}
                 </p>
 
                 {/* Action Card - for RFQ or Vendor Search triggers */}

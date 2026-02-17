@@ -116,19 +116,23 @@ html, body {
 /* Internal vendor link in chat messages */
 .internal-link {
   display: inline;
-  color: #71514F;
+  color: #4A2F2D;
   font-weight: 600;
+  font-size: inherit;
+  line-height: inherit;
   text-decoration: none;
-  background: linear-gradient(120deg, rgba(113, 81, 79, 0.08) 0%, rgba(227, 208, 194, 0.25) 100%);
-  padding: 1px 6px;
-  border-radius: 4px;
-  border-bottom: 2px solid rgba(113, 81, 79, 0.3);
+  background: rgba(227, 208, 194, 0.35);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: none;
+  border-bottom: 2px solid rgba(113, 81, 79, 0.25);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .internal-link:hover {
   color: #4A2F2D;
-  background: linear-gradient(120deg, rgba(113, 81, 79, 0.12) 0%, rgba(227, 208, 194, 0.4) 100%);
+  background: rgba(227, 208, 194, 0.55);
   border-bottom-color: #4A2F2D;
+  box-shadow: 0 1px 3px rgba(74, 47, 45, 0.1);
 }
