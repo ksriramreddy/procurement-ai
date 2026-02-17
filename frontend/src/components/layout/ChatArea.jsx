@@ -9,7 +9,7 @@ import ChatInput from '../chat/ChatInput'
 import AgentStatus from '../chat/AgentStatus'
 import WelcomeScreen from '../chat/WelcomeScreen'
 
-export default function ChatArea() {
+export default function ChatArea({ viewMode = 'customer', onVendorClick }) {
   const {
     chats,
     currentChat,
@@ -149,7 +149,12 @@ export default function ChatArea() {
 
   // Handle parsed agent output
   const handleParsedAgentOutput = async (parsedData) => {
-    if (!currentChatId) return
+    if (!currentChatId) {
+      console.log('[ChatArea] ❌ handleParsedAgentOutput - No currentChatId')
+      return
+    }
+
+    console.log('[ChatArea] 📊 handleParsedAgentOutput called with type:', parsedData?.type)
 
     switch (parsedData.type) {
       case 'decision':
@@ -227,6 +232,26 @@ export default function ChatArea() {
             actionComplete: false
           })
         }
+        break
+
+      case 'chart_data':
+        console.log('[ChatArea] ✅ CHART_DATA case triggered')
+        console.log('[ChatArea] Chart Data:', JSON.stringify(parsedData.chartData)?.substring(0, 500))
+        console.log('[ChatArea] Chart Type:', parsedData.chartData?.chart_type)
+        console.log('[ChatArea] Chart Title:', parsedData.chartData?.title)
+        if (parsedData.chartData?.chart_type === 'text') {
+          console.log('[ChatArea] 📄 TEXT CHART - Data length:', parsedData.chartData?.data?.length)
+          console.log('[ChatArea] 📄 TEXT CHART - Data preview:', parsedData.chartData?.data?.substring(0, 200))
+        }
+        console.log('[ChatArea] Adding message to chat...')
+        addMessage(currentChatId, {
+          id: `chart-${Date.now()}`,
+          role: 'assistant',
+          content: '',
+          timestamp: new Date().toISOString(),
+          chartData: parsedData.chartData
+        })
+        console.log('[ChatArea] ✅ Message added successfully')
         break
 
       case 'general_chat':
@@ -361,15 +386,49 @@ export default function ChatArea() {
         break
       }
 
-      case 'manager_response':
-        addMessage(currentChatId, {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: parsedData.response,
-          timestamp: new Date().toISOString(),
-          agentsUsed: parsedData.agentsCalledSequence
-        })
+      case 'manager_response': {
+        console.log('[ChatArea] manager_response received:', typeof parsedData.response, JSON.stringify(parsedData.response)?.substring(0, 500))
+        // Check if the manager response contains chart JSON
+        let chartData = null
+
+        // Response is already a parsed object
+        if (parsedData.response && typeof parsedData.response === 'object' && parsedData.response.chart_type && ['pie', 'bar', 'line', 'text'].includes(parsedData.response.chart_type)) {
+          console.log('[ChatArea] manager_response is chart object:', parsedData.response.chart_type)
+          chartData = parsedData.response
+        }
+        // Response is a JSON string
+        else if (typeof parsedData.response === 'string') {
+          try {
+            const parsed = JSON.parse(parsedData.response)
+            if (parsed?.chart_type && ['pie', 'bar', 'line', 'text'].includes(parsed.chart_type)) {
+              console.log('[ChatArea] manager_response contains chart string:', parsed.chart_type)
+              chartData = parsed
+            }
+          } catch (err) {
+            console.log('[ChatArea] manager_response not chart JSON:', err.message)
+          }
+        }
+
+        if (chartData) {
+          addMessage(currentChatId, {
+            id: `chart-${Date.now()}`,
+            role: 'assistant',
+            content: '',
+            timestamp: new Date().toISOString(),
+            chartData,
+            agentsUsed: parsedData.agentsCalledSequence
+          })
+        } else {
+          addMessage(currentChatId, {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: parsedData.response,
+            timestamp: new Date().toISOString(),
+            agentsUsed: parsedData.agentsCalledSequence
+          })
+        }
         break
+      }
 
       default:
         break
@@ -511,7 +570,7 @@ export default function ChatArea() {
           <WelcomeScreen onQuickAction={handleQuickAction} />
         ) : (
           <div className="max-w-4xl mx-auto px-6 py-6">
-            <MessageList messages={currentChat.messages} onActionClick={handleActionClick} />
+            <MessageList messages={currentChat.messages} onActionClick={handleActionClick} onVendorClick={onVendorClick} />
 
             {/* Agent Status - Show while loading */}
             <AnimatePresence>

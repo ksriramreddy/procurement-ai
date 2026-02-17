@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 
 router = APIRouter(prefix="/lyzr-proxy", tags=["LYZR Proxy"])
 
-LYZR_SESSION_URL = "https://agent-prod.studio.lyzr.ai/v1/sessions"
+LYZR_SESSION_URL = os.getenv("LYZR_SESSION_URL", "https://agent-prod.studio.lyzr.ai/v1/sessions")
 LYZR_API_KEY = os.getenv("LYZR_API_KEY", "")
 
 

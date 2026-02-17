@@ -2,13 +2,22 @@ import { motion } from 'framer-motion'
 import { User, Bot, AlertCircle, FileIcon, Download } from 'lucide-react'
 import Badge from '../ui/Badge'
 import ActionCard from './ActionCard'
+import ChartCard from './ChartCard'
+import { renderLinkedText } from '../../utils/renderLinkedText'
 import { useChatStore } from '../../store/chatStore'
 
-export default function MessageBubble({ message, onActionClick }) {
+export default function MessageBubble({ message, onActionClick, onVendorClick }) {
   const isUser = message.role === 'user'
   const isError = message.error
   const isFileUpload = message.fileUpload
+  const isChart = !!message.chartData
   const { currentChatId, currentChat, updateMessage } = useChatStore()
+
+  console.log('[MessageBubble] 📨 Rendering message - role:', message.role, '| isChart:', isChart, '| hasChartData:', !!message.chartData)
+  if (isChart) {
+    console.log('[MessageBubble] Chart Message detected')
+    console.log('[MessageBubble] chartData:', JSON.stringify(message.chartData)?.substring(0, 300))
+  }
 
   // Get file extension from filename
   const getFileExtension = (filename) => {
@@ -52,14 +61,17 @@ export default function MessageBubble({ message, onActionClick }) {
           {/* Bubble */}
           <div
             className={`
-              px-4 py-3 rounded-2xl
-              ${isFileUpload
-                ? 'bg-white border border-lyzr-cream rounded-tl-md'
-                : isUser
-                  ? 'bg-lyzr-ferra text-white rounded-tr-md'
-                  : isError
-                    ? 'bg-accent-error/10 border border-accent-error/20 text-lyzr-congo rounded-tl-md'
-                    : 'bg-white border border-lyzr-cream text-lyzr-congo rounded-tl-md'
+              ${isChart
+                ? 'rounded-2xl rounded-tl-md overflow-hidden'
+                : `px-4 py-3 rounded-2xl
+                  ${isFileUpload
+                    ? 'bg-white border border-lyzr-cream rounded-tl-md'
+                    : isUser
+                      ? 'bg-lyzr-ferra text-white rounded-tr-md'
+                      : isError
+                        ? 'bg-accent-error/10 border border-accent-error/20 text-lyzr-congo rounded-tl-md'
+                        : 'bg-white border border-lyzr-cream text-lyzr-congo rounded-tl-md'
+                  }`
               }
             `}
           >
@@ -71,7 +83,9 @@ export default function MessageBubble({ message, onActionClick }) {
             )}
 
             {/* File Upload Card */}
-            {isFileUpload && message.fileUpload ? (
+            {isChart ? (
+              <ChartCard chartData={message.chartData} onVendorClick={onVendorClick} />
+            ) : isFileUpload && message.fileUpload ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -108,7 +122,7 @@ export default function MessageBubble({ message, onActionClick }) {
               <>
                 {/* Message Text */}
                 <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                  {message.content}
+                  {renderLinkedText(message.content, onVendorClick)}
                 </p>
 
                 {/* Action Card - for RFQ or Vendor Search triggers */}

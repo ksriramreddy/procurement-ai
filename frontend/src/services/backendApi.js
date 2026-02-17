@@ -124,3 +124,13 @@ export async function updateCertStatus({ threadId, certificate, field, isSubmitt
   })
   return data
 }
+
+/**
+ * Get a vendor by its vendor_id field (e.g. "VEND-ALPHACLOUD-007")
+ */
+export async function fetchVendorByVendorId(vendorId) {
+  const { data } = await api.get(`/api/vendors/by-vendor-id/${encodeURIComponent(vendorId)}`)
+  return data
+}
+
+export default api

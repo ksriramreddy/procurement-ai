@@ -2,8 +2,8 @@ import traceback
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from .routers import vendor_compliances, email_threads, messages, vendors, send_document, upload, s3_upload, lyzr_proxy
-from .database.connection import ping_db, vendors_collection, email_threads_collection
+from .routers import vendor_compliances, email_threads, messages, vendors, send_document, upload, s3_upload, lyzr_proxy, contracts, internal_vendors
+from .database.connection import ping_db, vendors_collection, email_threads_collection, contracts_collection, internal_vendors_collection
 
 app = FastAPI(
     title="Procurement Automation API",
@@ -32,6 +32,8 @@ app.include_router(vendor_compliances.router, prefix="/api")
 app.include_router(email_threads.router, prefix="/api")
 app.include_router(messages.router, prefix="/api")
 app.include_router(vendors.router, prefix="/api")
+app.include_router(contracts.router, prefix="/api")
+app.include_router(internal_vendors.router, prefix="/api")
 app.include_router(send_document.router, prefix="/api")
 app.include_router(upload.router, prefix="/api")
 app.include_router(s3_upload.router, prefix="/api")
@@ -40,8 +42,25 @@ app.include_router(lyzr_proxy.router, prefix="/api")
 
 @app.on_event("startup")
 async def create_indexes():
-    await vendors_collection.create_index("vendor_id", unique=True)
-    await email_threads_collection.create_index("vendor_id")
+    try:
+        await vendors_collection.create_index("vendor_id", unique=True)
+    except Exception as e:
+        print(f"Index creation for vendors_collection failed: {e}")
+    
+    try:
+        await email_threads_collection.create_index("vendor_id")
+    except Exception as e:
+        print(f"Index creation for email_threads_collection failed: {e}")
+    
+    try:
+        await contracts_collection.create_index("contract_id", unique=False)
+    except Exception as e:
+        print(f"Index creation for contracts_collection failed: {e}")
+    
+    try:
+        await internal_vendors_collection.create_index("vendor_id", unique=False)
+    except Exception as e:
+        print(f"Index creation for internal_vendors_collection failed: {e}")
 
 
 @app.get("/")

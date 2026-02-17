@@ -14,6 +14,8 @@ vendor_compliances_collection = db["vendor_compliances"]
 email_threads_collection = db["email_threads"]
 messages_collection = db["messages"]
 vendors_collection = db["vendors"]
+contracts_collection = db["contracts"]
+internal_vendors_collection = db["internal_vendors"]
 
 
 async def ping_db():

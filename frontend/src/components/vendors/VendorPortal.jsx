@@ -308,51 +308,29 @@ export default function VendorPortal() {
             <>
               {/* Vendor header */}
               <div className="px-6 py-4 border-b border-lyzr-cream bg-white">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h2 className="font-playfair text-lg font-semibold text-lyzr-congo">
-                      {selectedVendor.vendor_name}
-                    </h2>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-lyzr-mid-4">
-                      {selectedVendor.contact_email && (
-                        <div className="flex items-center gap-1">
-                          <Mail className="w-3.5 h-3.5" />
-                          <span>{selectedVendor.contact_email}</span>
-                        </div>
-                      )}
-                      {selectedVendor.headquarters && (
-                        <div className="flex items-center gap-1">
-                          <Globe className="w-3.5 h-3.5" />
-                          <span>{selectedVendor.headquarters}</span>
-                        </div>
-                      )}
-                      {selectedVendor.contact_name && (
-                        <div className="flex items-center gap-1">
-                          <Phone className="w-3.5 h-3.5" />
-                          <span>{selectedVendor.contact_name}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => handleSendDocument('RFQ')}
-                      disabled={isSending}
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      {isSending ? 'Sending...' : 'Send RFQ'}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handleSendDocument('RFP')}
-                      disabled={isSending}
-                    >
-                      <ClipboardList className="w-3.5 h-3.5" />
-                      {isSending ? 'Sending...' : 'Send RFP'}
-                    </Button>
+                <div>
+                  <h2 className="font-playfair text-lg font-semibold text-lyzr-congo">
+                    {selectedVendor.vendor_name}
+                  </h2>
+                  <div className="flex items-center gap-4 mt-2 text-sm text-lyzr-mid-4">
+                    {selectedVendor.contact_email && (
+                      <div className="flex items-center gap-1">
+                        <Mail className="w-3.5 h-3.5" />
+                        <span>{selectedVendor.contact_email}</span>
+                      </div>
+                    )}
+                    {selectedVendor.headquarters && (
+                      <div className="flex items-center gap-1">
+                        <Globe className="w-3.5 h-3.5" />
+                        <span>{selectedVendor.headquarters}</span>
+                      </div>
+                    )}
+                    {selectedVendor.contact_name && (
+                      <div className="flex items-center gap-1">
+                        <Phone className="w-3.5 h-3.5" />
+                        <span>{selectedVendor.contact_name}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

@@ -19,7 +19,7 @@ import Button from '../ui/Button'
 const NAV_ITEMS = [
   { id: 'chat', label: 'Chat', icon: MessageSquare, active: true },
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'vendors', label: 'Vendors', icon: Building2 },
+  { id: 'internal-vendors', label: 'Internal Vendors', icon: Building2 },
   { id: 'contracts', label: 'Contracts', icon: FileText }
 ]
 
@@ -41,16 +41,10 @@ export default function Sidebar({ isCollapsed, onToggle, activeNav, onNavChange,
 
   const handleViewModeChange = (mode) => {
     onViewModeChange?.(mode)
-    if (mode === 'vendor') {
-      onNavChange?.('vendors')
-    } else {
-      onNavChange?.('chat')
-    }
+    onNavChange?.('chat')
   }
 
-  const filteredNavItems = viewMode === 'vendor'
-    ? NAV_ITEMS.filter(item => item.id === 'vendors' || item.id === 'dashboard')
-    : NAV_ITEMS
+  const filteredNavItems = NAV_ITEMS
 
   const filteredChats = useMemo(() => {
     if (!searchQuery.trim()) return chatList

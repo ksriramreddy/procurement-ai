@@ -112,3 +112,23 @@ html, body {
 .typing-dot:nth-child(3) {
   animation-delay: 0.4s;
 }
+
+/* Internal vendor link in chat messages */
+.internal-link {
+  display: inline;
+  color: #71514F;
+  font-weight: 600;
+  text-decoration: none;
+  background: linear-gradient(120deg, rgba(113, 81, 79, 0.08) 0%, rgba(227, 208, 194, 0.25) 100%);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border-bottom: 2px solid rgba(113, 81, 79, 0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.internal-link:hover {
+  color: #4A2F2D;
+  background: linear-gradient(120deg, rgba(113, 81, 79, 0.12) 0%, rgba(227, 208, 194, 0.4) 100%);
+  border-bottom-color: #4A2F2D;
+}

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import MessageBubble from './MessageBubble'
 
-export default function MessageList({ messages, onActionClick }) {
+export default function MessageList({ messages, onActionClick, onVendorClick }) {
   return (
     <div className="space-y-6">
       {messages.map((message, index) => (
@@ -11,7 +11,7 @@ export default function MessageList({ messages, onActionClick }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: index * 0.05 }}
         >
-          <MessageBubble message={message} onActionClick={onActionClick} />
+          <MessageBubble message={message} onActionClick={onActionClick} onVendorClick={onVendorClick} />
         </motion.div>
       ))}
     </div>

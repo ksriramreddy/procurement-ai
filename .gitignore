@@ -90,6 +90,17 @@ venv/
 *.spec.log
 
 # ===============================
+# Scratch / test scripts
+# ===============================
+session.js
+precurementdirect.js
+negotiation.js
+fileuploadtest.js
+chatfile.js
+text.py
+backend/migrate.py
+
+# ===============================
 # Optional: lockfiles (keep only one if needed)
 # ===============================
 # package-lock.json

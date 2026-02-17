@@ -5,6 +5,8 @@ import ChatArea from './components/layout/ChatArea'
 import DetailPanel from './components/layout/DetailPanel'
 import Dashboard from './components/dashboard/Dashboard'
 import VendorPortal from './components/vendors/VendorPortal'
+import InternalVendorsPortal from './components/internal-vendors/InternalVendorsPortal'
+import ContractsPortal from './components/contracts/ContractsPortal'
 import { useChatStore } from './store/chatStore'
 
 const MIN_PANEL_WIDTH = 320
@@ -17,9 +19,16 @@ function App() {
   const [activeNav, setActiveNav] = useState('chat')
   const [viewMode, setViewMode] = useState('customer')
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH)
+  const [preSelectedVendorId, setPreSelectedVendorId] = useState(null)
   const isDragging = useRef(false)
   const startX = useRef(0)
   const startWidth = useRef(DEFAULT_PANEL_WIDTH)
+
+  // Navigate to internal vendors page and pre-select a vendor (called from chat vendor links)
+  const handleVendorClick = useCallback((vendorId) => {
+    setPreSelectedVendorId(vendorId)
+    setActiveNav('internal-vendors')
+  }, [])
 
   const handleMouseDown = useCallback((e) => {
     e.preventDefault()
@@ -70,10 +79,17 @@ function App() {
       <main className="flex-1 flex flex-col min-w-0">
         {activeNav === 'dashboard' ? (
           <Dashboard />
-        ) : activeNav === 'vendors' ? (
+        ) : activeNav === 'internal-vendors' ? (
+          <InternalVendorsPortal
+            preSelectedVendorId={preSelectedVendorId}
+            onClearPreSelected={() => setPreSelectedVendorId(null)}
+          />
+        ) : activeNav === 'contracts' ? (
+          <ContractsPortal />
+        ) : activeNav === 'chat' && viewMode === 'vendor' ? (
           <VendorPortal />
         ) : (
-          <ChatArea />
+          <ChatArea viewMode={viewMode} onVendorClick={handleVendorClick} />
         )}
       </main>
 

@@ -1,5 +1,5 @@
-const CHAT_URL = 'https://agent-prod.studio.lyzr.ai/v3/inference/chat/'
-const ASSET_UPLOAD_URL = 'https://agent-prod.studio.lyzr.ai/v3/assets/upload'
+const CHAT_URL = import.meta.env.VITE_LYZR_CHAT_URL || 'https://agent-prod.studio.lyzr.ai/v3/inference/chat/'
+const ASSET_UPLOAD_URL = import.meta.env.VITE_LYZR_ASSET_UPLOAD_URL || 'https://agent-prod.studio.lyzr.ai/v3/assets/upload'
 
 /**
  * Get environment variables
@@ -658,7 +658,7 @@ export async function callCertVerifierAgent(ocrResult, threadId) {
  * Sends the customer requirement summary and vendor message to the negotiation agent.
  * Uses thread_id as session_id. Returns parsed response content.
  */
-const NEGOTIATION_AGENT_ID = '6992e3c032a75e26d972bc90'
+const NEGOTIATION_AGENT_ID = import.meta.env.VITE_LYZR_NEGOTIATION_AGENT_ID || '6992e3c032a75e26d972bc90'
 
 export async function callNegotiationAgent({ customerSummary, vendorMessage, customerMessage, threadId }) {
   const config = getConfig()
