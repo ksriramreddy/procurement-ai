@@ -36,12 +36,9 @@ export default function WelcomeScreen({ onQuickAction }) {
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="w-16 h-16 bg-lyzr-black rounded-2xl flex items-center justify-center mb-8"
+        className="w-16 h-16 rounded-2xl flex items-center justify-center mb-8 overflow-hidden"
       >
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-          <path d="M12 4L4 8v8l8 4 8-4V8l-8-4z" stroke="#F3EFEA" strokeWidth="2" strokeLinejoin="round"/>
-          <path d="M12 12l8-4M12 12v8M12 12L4 8" stroke="#F3EFEA" strokeWidth="2" strokeLinejoin="round"/>
-        </svg>
+        <img src="/image.png" alt="Lyzr" className="w-full h-full object-contain" />
       </motion.div>
 
       {/* Title */}
@@ -73,11 +70,7 @@ export default function WelcomeScreen({ onQuickAction }) {
       >
         <span className="text-sm text-lyzr-mid-4">Powered by</span>
         <div className="flex items-center gap-1.5">
-          <div className="w-5 h-5 bg-lyzr-black rounded flex items-center justify-center">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-              <path d="M12 4L4 8v8l8 4 8-4V8l-8-4z" stroke="#F3EFEA" strokeWidth="2" strokeLinejoin="round"/>
-            </svg>
-          </div>
+          <img src="/image.png" alt="Lyzr" className="w-5 h-5 rounded object-contain" />
           <span className="text-sm font-medium text-lyzr-congo">lyzr</span>
         </div>
       </motion.div>

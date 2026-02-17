@@ -468,11 +468,7 @@ export default function ThreadChat({ thread, vendorName }) {
         {/* Customer message: Requirement Summary */}
         <div className="flex justify-start">
           <div className="flex gap-3 max-w-[85%]">
-            <div className="w-8 h-8 rounded-full bg-lyzr-black flex items-center justify-center flex-shrink-0">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 4L4 8v8l8 4 8-4V8l-8-4z" stroke="#F3EFEA" strokeWidth="2" strokeLinejoin="round"/>
-              </svg>
-            </div>
+            <img src="/image.png" alt="Lyzr" className="w-8 h-8 rounded-full object-contain flex-shrink-0" />
             <div className="flex flex-col items-start">
               <span className="text-xs text-lyzr-mid-4 mb-1 ml-1">Customer</span>
               <div className="px-4 py-3 rounded-2xl rounded-tl-md bg-white border border-lyzr-cream text-lyzr-congo">
@@ -613,9 +609,7 @@ export default function ThreadChat({ thread, vendorName }) {
                     {isVendor ? (
                       <FileText className="w-4 h-4 text-white" />
                     ) : (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 4L4 8v8l8 4 8-4V8l-8-4z" stroke="#F3EFEA" strokeWidth="2" strokeLinejoin="round"/>
-                      </svg>
+                      <img src="/image.png" alt="Lyzr" className="w-5 h-5 rounded object-contain" />
                     )}
                   </div>
 

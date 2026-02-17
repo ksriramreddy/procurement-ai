@@ -16,24 +16,26 @@ export default function MessageBubble({ message, onActionClick, onVendorClick })
   let effectiveChartData = message.chartData || null
   let effectiveContent = message.content
 
-  if (!effectiveChartData && !isUser && typeof message.content === 'string' && message.content.trim().startsWith('{')) {
-    try {
-      // Try direct parse first, then with unescaped newlines/tabs
-      let jsonStr = message.content
-      let parsed
-      try {
-        parsed = JSON.parse(jsonStr)
-      } catch (_) {
-        // Content may have literal \n \t characters — unescape and retry
-        jsonStr = jsonStr.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"')
-        parsed = JSON.parse(jsonStr)
+  if (!effectiveChartData && !isUser && typeof message.content === 'string') {
+    const content = message.content.trim()
+    // Check if content looks like chart JSON wrapper
+    if (content.includes('"chart_type"') && content.includes('"data"')) {
+      // Extract the data field value directly via regex
+      const dataMatch = content.match(/"data"\s*:\s*"([\s\S]*?)"\s*\}?\s*$/)
+      if (dataMatch) {
+        const chartTypeMatch = content.match(/"chart_type"\s*:\s*"(\w+)"/)
+        const titleMatch = content.match(/"title"\s*:\s*"([\s\S]*?)"/)
+        const chartType = chartTypeMatch?.[1] || 'text'
+        if (['pie', 'bar', 'line', 'text'].includes(chartType)) {
+          effectiveChartData = {
+            chart_type: chartType,
+            title: titleMatch?.[1] || '',
+            labels: '',
+            data: dataMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"')
+          }
+          effectiveContent = ''
+        }
       }
-      if (parsed?.chart_type && ['pie', 'bar', 'line', 'text'].includes(parsed.chart_type)) {
-        effectiveChartData = parsed
-        effectiveContent = ''
-      }
-    } catch (e) {
-      // Not JSON, render as normal text
     }
   }
 
@@ -65,9 +67,7 @@ export default function MessageBubble({ message, onActionClick, onVendorClick })
           {isUser ? (
             <User className="w-4 h-4 text-white" />
           ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M12 4L4 8v8l8 4 8-4V8l-8-4z" stroke="#F3EFEA" strokeWidth="2" strokeLinejoin="round"/>
-            </svg>
+            <img src="/image.png" alt="Lyzr" className="w-5 h-5 rounded object-contain" />
           )}
         </div>
 

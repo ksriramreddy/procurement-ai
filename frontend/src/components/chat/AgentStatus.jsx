@@ -65,11 +65,7 @@ export default function AgentStatus({
   return (
     <div className="flex items-start gap-3">
       {/* Avatar */}
-      <div className="w-8 h-8 bg-lyzr-black rounded-full flex items-center justify-center flex-shrink-0">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path d="M12 4L4 8v8l8 4 8-4V8l-8-4z" stroke="#F3EFEA" strokeWidth="2" strokeLinejoin="round"/>
-        </svg>
-      </div>
+      <img src="/image.png" alt="Lyzr" className="w-8 h-8 rounded-full object-contain flex-shrink-0" />
 
       {/* Status Content */}
       <div className="flex-1 bg-white rounded-2xl rounded-tl-md border border-lyzr-cream p-4 max-w-sm">

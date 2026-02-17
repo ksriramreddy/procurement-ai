@@ -71,12 +71,7 @@ export default function Sidebar({ isCollapsed, onToggle, activeNav, onNavChange,
     >
       {/* Logo */}
       <div className="p-4 flex items-center gap-3">
-        <div className="w-10 h-10 bg-lyzr-black rounded-xl flex items-center justify-center flex-shrink-0">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M12 4L4 8v8l8 4 8-4V8l-8-4z" stroke="#F3EFEA" strokeWidth="2" strokeLinejoin="round"/>
-            <path d="M12 12l8-4M12 12v8M12 12L4 8" stroke="#F3EFEA" strokeWidth="2" strokeLinejoin="round"/>
-          </svg>
-        </div>
+        <img src="/image.png" alt="Lyzr" className="w-10 h-10 rounded-xl object-contain flex-shrink-0" />
         <AnimatePresence>
           {!isCollapsed && (
             <motion.div
@@ -279,11 +274,7 @@ export default function Sidebar({ isCollapsed, onToggle, activeNav, onNavChange,
           <span className={`text-xs text-lyzr-mid-4 ${isCollapsed ? 'hidden' : ''}`}>
             Powered by
           </span>
-          <div className="w-5 h-5 bg-lyzr-black rounded flex items-center justify-center">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-              <path d="M12 4L4 8v8l8 4 8-4V8l-8-4z" stroke="#F3EFEA" strokeWidth="2" strokeLinejoin="round"/>
-            </svg>
-          </div>
+          <img src="/image.png" alt="Lyzr" className="w-5 h-5 rounded object-contain" />
           <span className={`text-xs font-medium text-lyzr-congo ${isCollapsed ? 'hidden' : ''}`}>
             lyzr
           </span>
