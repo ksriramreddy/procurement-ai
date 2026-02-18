@@ -17,8 +17,8 @@ BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "lyzr-procurement")
 FOLDER_PREFIX = "LYZR procurement"
 
 
-def upload_file_to_s3(file_bytes: bytes, original_filename: str, document_type: str) -> str:
-    """Upload a file to S3 and return the public URL."""
+def upload_file_to_s3(file_bytes: bytes, original_filename: str, document_type: str) -> dict:
+    """Upload a file to S3 and return the S3 key + a presigned URL."""
     ext = os.path.splitext(original_filename)[1] if original_filename else ".pdf"
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     unique_id = uuid.uuid4().hex[:8]
@@ -31,8 +31,17 @@ def upload_file_to_s3(file_bytes: bytes, original_filename: str, document_type: 
         ContentType=_get_content_type(ext),
     )
 
-    url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{s3_key}"
-    return url
+    presigned_url = generate_presigned_url(s3_key)
+    return {"s3_key": s3_key, "url": presigned_url}
+
+
+def generate_presigned_url(s3_key: str, expires_in: int = 604800) -> str:
+    """Generate a presigned URL for an S3 object. Default expiry: 7 days (604800s)."""
+    return s3_client.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": BUCKET_NAME, "Key": s3_key},
+        ExpiresIn=expires_in,
+    )
 
 
 def _get_content_type(ext: str) -> str:

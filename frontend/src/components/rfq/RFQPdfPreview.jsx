@@ -573,7 +573,7 @@ export default function RFQPdfPreview({ rfqDocument, documentType = 'RFQ' }) {
           <Send className="w-4 h-4" />
           {isSending ? 'Sending...' : `Send ${documentType}`}
         </Button>
-        {(documentType === 'RFQ' || documentType === 'RFP') && (
+        {(documentType === 'RFQ' || documentType === 'RFP') && !(currentChat?.selectedVendorsForRfq?.length > 0) && (
           <Button
             variant="secondary"
             className="flex-1"

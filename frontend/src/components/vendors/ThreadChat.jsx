@@ -5,8 +5,83 @@ import {
   AlertCircle, Loader, Info, Download, ExternalLink, Scale, Edit3
 } from 'lucide-react'
 import Badge from '../ui/Badge'
-import { fetchThreadMessages, createMessage, updateCertStatus } from '../../services/backendApi'
+import { fetchThreadMessages, createMessage, updateCertStatus, getPresignedUrl } from '../../services/backendApi'
 import { callOcrAgent, callCertVerifierAgent, callNegotiationAgent, fetchNegotiationHistory } from '../../services/api'
+
+function AttachmentLink({ urlOrKey, message, isVendor }) {
+  const [href, setHref] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const fileName = decodeURIComponent((urlOrKey || '').split('/').pop()) || 'Attachment'
+
+  const handleClick = async (e) => {
+    if (href) return // Already resolved
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const presignedUrl = await getPresignedUrl(urlOrKey)
+      setHref(presignedUrl)
+      // Open in new tab after getting URL
+      window.open(presignedUrl, '_blank')
+    } catch {
+      console.warn('[AttachmentLink] Failed to get presigned URL')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div
+      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl
+        ${isVendor ? 'bg-white/10' : 'bg-lyzr-light-1 border border-lyzr-cream'}`}
+    >
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0
+        ${isVendor ? 'bg-white/20' : 'bg-lyzr-ferra/10'}`}>
+        <FileText className={`w-4 h-4 ${isVendor ? 'text-white' : 'text-lyzr-ferra'}`} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={`text-xs font-medium truncate ${isVendor ? 'text-white' : 'text-lyzr-congo'}`}>
+          {fileName}
+        </p>
+        <p className={`text-[10px] ${isVendor ? 'text-white/60' : 'text-lyzr-mid-4'}`}>
+          {message}
+        </p>
+      </div>
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <button
+          onClick={handleClick}
+          disabled={loading}
+          title="View"
+          className={`p-1.5 rounded-lg transition-colors
+            ${isVendor ? 'hover:bg-white/20 text-white' : 'hover:bg-lyzr-cream text-lyzr-congo'}
+            disabled:opacity-40`}
+        >
+          {loading ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
+        </button>
+        <button
+          onClick={async (e) => {
+            e.preventDefault()
+            let downloadUrl = href
+            if (!downloadUrl) {
+              try {
+                downloadUrl = await getPresignedUrl(urlOrKey)
+                setHref(downloadUrl)
+              } catch { return }
+            }
+            const a = document.createElement('a')
+            a.href = downloadUrl
+            a.download = fileName
+            a.click()
+          }}
+          title="Download"
+          className={`p-1.5 rounded-lg transition-colors
+            ${isVendor ? 'hover:bg-white/20 text-white' : 'hover:bg-lyzr-cream text-lyzr-congo'}`}
+        >
+          <Download className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function ThreadChat({ thread, vendorName }) {
   const [messages, setMessages] = useState([])
@@ -628,52 +703,9 @@ export default function ThreadChat({ thread, vendorName }) {
                       </p>
                       {msg.attachment?.length > 0 && (
                         <div className="mt-2 space-y-1.5">
-                          {msg.attachment.map((url, i) => {
-                            const isS3 = url.startsWith('http')
-                            const href = isS3 ? url : `https://procurement-ai-5fpq.vercel.app${url}`
-                            const fileName = isS3 ? decodeURIComponent(url.split('/').pop()) : 'Attachment'
-                            return (
-                              <div
-                                key={i}
-                                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl
-                                  ${isVendor ? 'bg-white/10' : 'bg-lyzr-light-1 border border-lyzr-cream'}`}
-                              >
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0
-                                  ${isVendor ? 'bg-white/20' : 'bg-lyzr-ferra/10'}`}>
-                                  <FileText className={`w-4 h-4 ${isVendor ? 'text-white' : 'text-lyzr-ferra'}`} />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className={`text-xs font-medium truncate ${isVendor ? 'text-white' : 'text-lyzr-congo'}`}>
-                                    {fileName}
-                                  </p>
-                                  <p className={`text-[10px] ${isVendor ? 'text-white/60' : 'text-lyzr-mid-4'}`}>
-                                    {msg.message}
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                  <a
-                                    href={href}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title="View"
-                                    className={`p-1.5 rounded-lg transition-colors
-                                      ${isVendor ? 'hover:bg-white/20 text-white' : 'hover:bg-lyzr-cream text-lyzr-congo'}`}
-                                  >
-                                    <ExternalLink className="w-3.5 h-3.5" />
-                                  </a>
-                                  <a
-                                    href={href}
-                                    download={fileName}
-                                    title="Download"
-                                    className={`p-1.5 rounded-lg transition-colors
-                                      ${isVendor ? 'hover:bg-white/20 text-white' : 'hover:bg-lyzr-cream text-lyzr-congo'}`}
-                                  >
-                                    <Download className="w-3.5 h-3.5" />
-                                  </a>
-                                </div>
-                              </div>
-                            )
-                          })}
+                          {msg.attachment.map((urlOrKey, i) => (
+                            <AttachmentLink key={i} urlOrKey={urlOrKey} message={msg.message} isVendor={isVendor} />
+                          ))}
                         </div>
                       )}
                     </div>

@@ -126,6 +126,29 @@ export async function updateCertStatus({ threadId, certificate, field, isSubmitt
 }
 
 /**
+ * Get a presigned URL for an S3 object (7-day expiry).
+ * Handles both old full URLs and new S3 keys.
+ * @param {string} urlOrKey - Full S3 URL or S3 key
+ */
+export async function getPresignedUrl(urlOrKey) {
+  // Extract S3 key from full URL if needed
+  let s3Key = urlOrKey
+  if (urlOrKey.startsWith('http')) {
+    try {
+      const url = new URL(urlOrKey)
+      // Remove leading slash from pathname
+      s3Key = decodeURIComponent(url.pathname.replace(/^\//, ''))
+    } catch {
+      return urlOrKey // Can't parse, return as-is
+    }
+  }
+  const { data } = await api.get('/api/s3-upload/presign', {
+    params: { s3_key: s3Key }
+  })
+  return data.url
+}
+
+/**
  * Get a vendor by its vendor_id field (e.g. "VEND-ALPHACLOUD-007")
  */
 export async function fetchVendorByVendorId(vendorId) {

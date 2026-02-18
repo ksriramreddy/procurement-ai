@@ -95,7 +95,7 @@ function App() {
 
       {/* Right Detail Panel - Only show in chat view */}
       <AnimatePresence>
-        {activeNav === 'chat' && isDetailPanelOpen && (
+        {activeNav === 'chat' && viewMode !== 'vendor' && isDetailPanelOpen && (
           <motion.div
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: panelWidth, opacity: 1 }}

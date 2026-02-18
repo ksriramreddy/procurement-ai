@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Building2, Mail, MessageSquare, Search,
+  Building2, Mail, MessageSquare, Search, Clock,
   Globe, Phone, ChevronDown, Loader, RefreshCw,
   FileText, ClipboardList, AlertTriangle, CheckCircle, X
 } from 'lucide-react'
@@ -11,6 +11,27 @@ import ThreadChat from './ThreadChat'
 import { useChatStore } from '../../store/chatStore'
 import { callCertificationAgent } from '../../services/api'
 import { fetchAllVendors, fetchVendorThreads, sendDocumentToVendors } from '../../services/backendApi'
+
+// Extract creation timestamp from MongoDB ObjectId (first 8 hex chars = seconds since epoch)
+const objectIdToDate = (id) => {
+  if (!id || id.length < 8) return null
+  const timestamp = parseInt(id.substring(0, 8), 16)
+  return new Date(timestamp * 1000)
+}
+
+const formatTimeAgo = (date) => {
+  if (!date) return ''
+  const now = new Date()
+  const diffMs = now - date
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) return `${diffDays}d ago`
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+}
 
 export default function VendorPortal() {
   const { currentChat } = useChatStore()
@@ -48,9 +69,15 @@ export default function VendorPortal() {
     setIsLoadingThreads(true)
     try {
       const data = await fetchVendorThreads(vendor.vendor_id)
-      setThreads(data)
-      if (data.length > 0) {
-        setSelectedThread(data[0])
+      // Sort threads by created_at — newest first
+      const sorted = [...data].sort((a, b) => {
+        const ta = a.created_at ? new Date(a.created_at).getTime() : 0
+        const tb = b.created_at ? new Date(b.created_at).getTime() : 0
+        return tb - ta
+      })
+      setThreads(sorted)
+      if (sorted.length > 0) {
+        setSelectedThread(sorted[0])
       }
     } catch {
       setThreads([])
@@ -168,10 +195,15 @@ export default function VendorPortal() {
         certificationData
       })
       setSendSuccess(docType)
-      // Reload threads for this vendor
+      // Reload threads for this vendor (sorted newest first)
       const data = await fetchVendorThreads(selectedVendor.vendor_id)
-      setThreads(data)
-      if (data.length > 0) setSelectedThread(data[0])
+      const sorted = [...data].sort((a, b) => {
+        const ta = a.created_at ? new Date(a.created_at).getTime() : 0
+        const tb = b.created_at ? new Date(b.created_at).getTime() : 0
+        return tb - ta
+      })
+      setThreads(sorted)
+      if (sorted.length > 0) setSelectedThread(sorted[0])
       setTimeout(() => setSendSuccess(null), 3000)
     } catch (err) {
       console.warn('[VendorPortal] sendDocumentToVendors failed:', err.message)
@@ -181,11 +213,15 @@ export default function VendorPortal() {
   }
 
   const filteredVendors = useMemo(() => {
-    if (!searchQuery.trim()) return vendors
-    return vendors.filter(v =>
-      v.vendor_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.vendor_id?.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    let list = vendors
+    if (searchQuery.trim()) {
+      list = list.filter(v =>
+        v.vendor_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        v.vendor_id?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+    // Sort by MongoDB ObjectId (encodes creation time) — newest first
+    return [...list].sort((a, b) => (b.id || '').localeCompare(a.id || ''))
   }, [vendors, searchQuery])
 
   return (
@@ -273,9 +309,14 @@ export default function VendorPortal() {
                         {vendor.contact_email || vendor.vendor_id}
                       </p>
                     </div>
-                    <Badge variant={vendor.source === 'external' ? 'warning' : 'success'} size="sm">
-                      {vendor.source}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <Badge variant={vendor.source === 'external' ? 'warning' : 'success'} size="sm">
+                        {vendor.source}
+                      </Badge>
+                      <span className="text-[10px] text-lyzr-mid-4">
+                        {formatTimeAgo(objectIdToDate(vendor.id))}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-3 mt-1.5 ml-12">
                     <div className="flex items-center gap-1">
@@ -394,11 +435,16 @@ export default function VendorPortal() {
                         className="w-full px-4 py-2.5 bg-white border border-lyzr-cream rounded-lg text-sm
                           text-lyzr-black focus:outline-none focus:ring-2 focus:ring-lyzr-ferra/30 appearance-none pr-10"
                       >
-                        {threads.map(thread => (
-                          <option key={thread.id} value={thread.id}>
-                            {thread.subject} {thread.document_type ? `(${thread.document_type})` : ''}
-                          </option>
-                        ))}
+                        {threads.map(thread => {
+                          const timeStr = thread.created_at
+                            ? formatTimeAgo(new Date(thread.created_at))
+                            : ''
+                          return (
+                            <option key={thread.id} value={thread.id}>
+                              {thread.subject} {thread.document_type ? `(${thread.document_type})` : ''}{timeStr ? ` — ${timeStr}` : ''}
+                            </option>
+                          )
+                        })}
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-lyzr-mid-4 pointer-events-none" />
                     </div>
