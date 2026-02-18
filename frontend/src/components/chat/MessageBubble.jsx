@@ -6,6 +6,45 @@ import ChartCard from './ChartCard'
 import { renderLinkedText } from '../../utils/renderLinkedText'
 import { useChatStore } from '../../store/chatStore'
 
+/**
+ * Strip JSON wrapper from chart responses.
+ * Handles literal \n, {}, and extracts just the data field.
+ */
+function cleanChartJson(raw) {
+  if (!raw || typeof raw !== 'string') return null
+  const str = raw.trim().replace(/\\n/g, ' ').replace(/\\t/g, ' ')
+  if (!str.includes('"chart_type"') || !str.includes('"data"')) return null
+
+  // Extract short fields (chart_type, title) — these don't contain unescaped quotes
+  const getShortField = (s, key) => {
+    const re = new RegExp(`"${key}"\\s*:\\s*"([^"]*)"`)
+    const m = s.match(re)
+    return m ? m[1] : ''
+  }
+
+  const chartType = getShortField(str, 'chart_type')
+  if (!['pie', 'bar', 'line', 'text'].includes(chartType)) return null
+  const title = getShortField(str, 'title')
+
+  // "data" is the last field and may contain unescaped quotes (from HTML tags).
+  // Grab everything between the first " after "data": and the last " before the final }
+  const dataMarker = str.indexOf('"data"')
+  if (dataMarker === -1) return null
+  const colonAfter = str.indexOf(':', dataMarker + 6)
+  if (colonAfter === -1) return null
+  const openQuote = str.indexOf('"', colonAfter + 1)
+  if (openQuote === -1) return null
+  const lastBrace = str.lastIndexOf('}')
+  if (lastBrace === -1) return null
+  const closeQuote = str.lastIndexOf('"', lastBrace)
+  if (closeQuote <= openQuote) return null
+
+  const data = str.substring(openQuote + 1, closeQuote).replace(/\\"/g, '"')
+  if (!data) return null
+
+  return { chart_type: chartType, title, labels: '', data }
+}
+
 export default function MessageBubble({ message, onActionClick, onVendorClick }) {
   const isUser = message.role === 'user'
   const isError = message.error
@@ -17,25 +56,10 @@ export default function MessageBubble({ message, onActionClick, onVendorClick })
   let effectiveContent = message.content
 
   if (!effectiveChartData && !isUser && typeof message.content === 'string') {
-    const content = message.content.trim()
-    // Check if content looks like chart JSON wrapper
-    if (content.includes('"chart_type"') && content.includes('"data"')) {
-      // Extract the data field value directly via regex
-      const dataMatch = content.match(/"data"\s*:\s*"([\s\S]*?)"\s*\}?\s*$/)
-      if (dataMatch) {
-        const chartTypeMatch = content.match(/"chart_type"\s*:\s*"(\w+)"/)
-        const titleMatch = content.match(/"title"\s*:\s*"([\s\S]*?)"/)
-        const chartType = chartTypeMatch?.[1] || 'text'
-        if (['pie', 'bar', 'line', 'text'].includes(chartType)) {
-          effectiveChartData = {
-            chart_type: chartType,
-            title: titleMatch?.[1] || '',
-            labels: '',
-            data: dataMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"')
-          }
-          effectiveContent = ''
-        }
-      }
+    const cleaned = cleanChartJson(message.content)
+    if (cleaned) {
+      effectiveChartData = cleaned
+      effectiveContent = ''
     }
   }
 

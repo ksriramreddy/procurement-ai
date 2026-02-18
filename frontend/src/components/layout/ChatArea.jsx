@@ -79,12 +79,55 @@ export default function ChatArea({ viewMode = 'customer', onVendorClick }) {
       ]
       return messages[count % messages.length]
     } else if (conversationType === 'GENERAL_CHAT') {
+      // Check user's last message for context-aware loading text
+      const lastUserMsg = (currentChat?.messages || []).filter(m => m.role === 'user').pop()?.content?.toLowerCase() || ''
+
+      if (/chart|graph|pie|bar|visuali|plot|breakdown/.test(lastUserMsg)) {
+        const msgs = [
+          'Let me visualize that for you...',
+          'Generating a chart from your data...',
+          'Building a visual breakdown...',
+          'Preparing your visualization...',
+          'Crunching numbers and creating a chart...'
+        ]
+        return msgs[count % msgs.length]
+      }
+      if (/contract|agreement|term/.test(lastUserMsg)) {
+        const msgs = [
+          'Let me pull up the contract details...',
+          'Fetching contract records for you...',
+          'Searching through contract history...',
+          'Analyzing contract data...',
+          'Reviewing agreements and terms...'
+        ]
+        return msgs[count % msgs.length]
+      }
+      if (/vendor|supplier|provider/.test(lastUserMsg)) {
+        const msgs = [
+          'Looking up vendor information...',
+          'Searching vendor records...',
+          'Gathering vendor details for you...',
+          'Pulling vendor data from our records...',
+          'Analyzing vendor profiles...'
+        ]
+        return msgs[count % msgs.length]
+      }
+      if (/spend|cost|budget|price|expense/.test(lastUserMsg)) {
+        const msgs = [
+          'Analyzing spend data for you...',
+          'Crunching the numbers...',
+          'Pulling financial records...',
+          'Reviewing cost breakdowns...',
+          'Gathering spend insights...'
+        ]
+        return msgs[count % msgs.length]
+      }
       const messages = [
-        'Processing your request...',
-        'Let me think about that...',
-        'Analyzing your query...',
-        'Getting you the answer...',
-        'Working on your request...'
+        'Let me look into that for you...',
+        'Analyzing your request...',
+        'Gathering the information you need...',
+        'Working on your query...',
+        'Let me find that out for you...'
       ]
       return messages[count % messages.length]
     }

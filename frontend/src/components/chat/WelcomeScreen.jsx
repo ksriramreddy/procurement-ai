@@ -69,10 +69,7 @@ export default function WelcomeScreen({ onQuickAction }) {
         className="flex items-center gap-2 mb-12"
       >
         <span className="text-sm text-lyzr-mid-4">Powered by</span>
-        <div className="flex items-center gap-1.5">
-          <img src="/image.png" alt="Lyzr" className="w-5 h-5 rounded object-contain" />
-          <span className="text-sm font-medium text-lyzr-congo">lyzr</span>
-        </div>
+        <img src="/image.png" alt="Lyzr" className="w-5 h-5 rounded object-contain" />
       </motion.div>
 
       {/* Quick Actions */}

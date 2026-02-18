@@ -71,19 +71,18 @@ export default function Sidebar({ isCollapsed, onToggle, activeNav, onNavChange,
     >
       {/* Logo */}
       <div className="p-4 flex items-center gap-3">
-        <img src="/image.png" alt="Lyzr" className="w-10 h-10 rounded-xl object-contain flex-shrink-0" />
+        <img src="/image.png" alt="Lyzr" className={`${isCollapsed ? 'w-8 h-8' : 'w-10 h-10'} rounded-xl object-contain flex-shrink-0 transition-all duration-200`} />
         <AnimatePresence>
           {!isCollapsed && (
-            <motion.div
+            <motion.span
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}
               transition={{ duration: 0.2 }}
-              className="flex flex-col"
+              className="font-playfair text-lg font-bold text-lyzr-congo"
             >
-              <span className="font-playfair text-lg font-semibold text-lyzr-congo">lyzr</span>
-              <span className="text-xs text-lyzr-mid-4">Procurement Hub</span>
-            </motion.div>
+              Procurement Hub
+            </motion.span>
           )}
         </AnimatePresence>
       </div>
@@ -275,9 +274,6 @@ export default function Sidebar({ isCollapsed, onToggle, activeNav, onNavChange,
             Powered by
           </span>
           <img src="/image.png" alt="Lyzr" className="w-5 h-5 rounded object-contain" />
-          <span className={`text-xs font-medium text-lyzr-congo ${isCollapsed ? 'hidden' : ''}`}>
-            lyzr
-          </span>
         </div>
       </div>
     </motion.aside>

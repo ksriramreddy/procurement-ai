@@ -219,9 +219,7 @@ export default function ChartCard({ chartData, onVendorClick }) {
                 innerRadius={80}
                 dataKey="value"
                 paddingAngle={2}
-                label={({ name, percent }) =>
-                  chartItems.length <= 8 ? `${name} (${(percent * 100).toFixed(1)}%)` : false
-                }
+                label={chartItems.length <= 8 ? ({ name, percent }) => `${name} (${(percent * 100).toFixed(1)}%)` : false}
                 labelLine={chartItems.length <= 8}
               >
                 {chartItems.map((_, i) => (
