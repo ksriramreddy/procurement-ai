@@ -22,7 +22,8 @@ export default function DetailPanel() {
     setSelectedVendor,
     showDetailPanel,
     addMessage,
-    setPendingChatMessage
+    setPendingChatMessage,
+    setSelectedVendorsForRfq
   } = useChatStore()
 
   const [showRfqSuccess, setShowRfqSuccess] = useState(false)
@@ -451,6 +452,8 @@ export default function DetailPanel() {
                 onSelectVendor={setSelectedVendor}
                 onSendRfq={handleSendRfqFromVendor}
                 onSendRfp={handleSendRfpFromVendor}
+                savedSelectedVendors={currentChat?.selectedVendorsForRfq || []}
+                onSelectionChange={(vendors) => setSelectedVendorsForRfq(currentChatId, vendors)}
               />
             </motion.div>
           )}

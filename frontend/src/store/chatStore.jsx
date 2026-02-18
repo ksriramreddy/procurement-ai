@@ -44,6 +44,7 @@ const ACTIONS = {
   SET_RFP_DOCUMENT: 'SET_RFP_DOCUMENT',
   SET_CONTRACT_DOCUMENT: 'SET_CONTRACT_DOCUMENT',
   SET_PENDING_CHAT_MESSAGE: 'SET_PENDING_CHAT_MESSAGE',
+  SET_SELECTED_VENDORS_FOR_RFQ: 'SET_SELECTED_VENDORS_FOR_RFQ',
   DELETE_CHAT: 'DELETE_CHAT',
   UPDATE_CHAT_TITLE: 'UPDATE_CHAT_TITLE'
 }
@@ -69,6 +70,7 @@ function chatReducer(state, action) {
         rfqDocument: null,
         rfpDocument: null,
         contractDocument: null,
+        selectedVendorsForRfq: [],
         isPricingLoading: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -313,6 +315,20 @@ function chatReducer(state, action) {
     case ACTIONS.SET_PENDING_CHAT_MESSAGE:
       return { ...state, pendingChatMessage: action.payload }
 
+    case ACTIONS.SET_SELECTED_VENDORS_FOR_RFQ: {
+      const { chatId, vendors } = action.payload
+      const existingChat = state.chats[chatId]
+      if (!existingChat) return state
+
+      return {
+        ...state,
+        chats: {
+          ...state.chats,
+          [chatId]: { ...existingChat, selectedVendorsForRfq: vendors }
+        }
+      }
+    }
+
     case ACTIONS.DELETE_CHAT: {
       const { [action.payload]: deleted, ...remainingChats } = state.chats
       const chatIds = Object.keys(remainingChats)
@@ -467,6 +483,10 @@ export function ChatProvider({ children }) {
     dispatch({ type: ACTIONS.SET_PENDING_CHAT_MESSAGE, payload: message })
   }, [])
 
+  const setSelectedVendorsForRfq = useCallback((chatId, vendors) => {
+    dispatch({ type: ACTIONS.SET_SELECTED_VENDORS_FOR_RFQ, payload: { chatId, vendors } })
+  }, [])
+
   const deleteChat = useCallback((chatId) => {
     dispatch({ type: ACTIONS.DELETE_CHAT, payload: chatId })
   }, [])
@@ -502,6 +522,7 @@ export function ChatProvider({ children }) {
     setRfpDocument,
     setContractDocument,
     setPendingChatMessage,
+    setSelectedVendorsForRfq,
     deleteChat,
     updateChatTitle
   }

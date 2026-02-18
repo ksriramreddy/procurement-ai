@@ -630,7 +630,8 @@ export default function ThreadChat({ thread, vendorName }) {
                         <div className="mt-2 space-y-1.5">
                           {msg.attachment.map((url, i) => {
                             const isS3 = url.startsWith('http')
-                            const href = isS3 ? url : `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}${url}`
+                            const backendBase = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000').replace(/\/+$/, '')
+                            const href = isS3 ? url : `${backendBase}${url}`
                             const fileName = isS3 ? decodeURIComponent(url.split('/').pop()) : 'Attachment'
                             return (
                               <div

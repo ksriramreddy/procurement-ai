@@ -275,10 +275,11 @@ export default function RFQPdfPreview({ rfqDocument, documentType = 'RFQ' }) {
     }
 
     // Step 2: Send vendors + certification data to backend via axios
-    const allVendors = [
-      ...(currentChat?.vendors || []),
-      ...(currentChat?.externalVendors || [])
-    ]
+    // Use selected vendors if any, otherwise fall back to all vendors
+    const selectedVendors = currentChat?.selectedVendorsForRfq || []
+    const allVendors = selectedVendors.length > 0
+      ? selectedVendors
+      : [...(currentChat?.vendors || []), ...(currentChat?.externalVendors || [])]
     if (allVendors.length > 0) {
       try {
         const sendResult = await sendDocumentToVendors({
@@ -319,7 +320,9 @@ export default function RFQPdfPreview({ rfqDocument, documentType = 'RFQ' }) {
     addMessage(currentChatId, {
       id: `doc-sent-${Date.now()}`,
       role: 'assistant',
-      content: `Your ${documentType} request has been submitted successfully.`,
+      content: allVendors.length > 0
+        ? `Your ${documentType} has been sent to ${allVendors.map(v => v.name).join(', ')} successfully.`
+        : `Your ${documentType} request has been submitted successfully.`,
       timestamp: new Date().toISOString(),
       actionType: getSentActionType(),
       actionComplete: true

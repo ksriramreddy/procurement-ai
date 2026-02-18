@@ -11,12 +11,14 @@ export default function VendorTable({
   onSelectVendor,
   onSendRfq,
   onSendRfp,
+  savedSelectedVendors = [],
+  onSelectionChange,
   isLoading = false
 }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [activeTab, setActiveTab] = useState('internal')
-  const [selectedForRfq, setSelectedForRfq] = useState([])
+  const [selectedForRfq, setSelectedForRfq] = useState(savedSelectedVendors)
 
   // Auto-switch to external tab if only external vendors exist
   useEffect(() => {
@@ -85,11 +87,11 @@ export default function VendorTable({
     e.stopPropagation()
     setSelectedForRfq(prev => {
       const isSelected = prev.some(v => v.id === vendor.id && v.name === vendor.name)
-      if (isSelected) {
-        return prev.filter(v => !(v.id === vendor.id && v.name === vendor.name))
-      } else {
-        return [...prev, vendor]
-      }
+      const updated = isSelected
+        ? prev.filter(v => !(v.id === vendor.id && v.name === vendor.name))
+        : [...prev, vendor]
+      onSelectionChange?.(updated)
+      return updated
     })
   }
 
