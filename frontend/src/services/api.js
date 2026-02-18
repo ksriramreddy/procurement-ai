@@ -708,7 +708,7 @@ export async function callNegotiationAgent({ customerSummary, vendorMessage, cus
  * Proxied through the FastAPI backend to avoid CORS issues.
  * Returns array of { role, content, created_at } or empty array if no history.
  */
-const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000').replace(/\/+$/, '')
+const BACKEND_URL = 'https://procurement-ai-5fpq.vercel.app'
 
 export async function fetchNegotiationHistory(threadId) {
   try {
